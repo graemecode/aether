@@ -1,0 +1,90 @@
+name: Aether
+options:
+  bundleIdPrefix: com.strangechances
+  deploymentTarget:
+    macOS: "15.0"
+  xcodeVersion: "16.0"
+
+targets:
+  AetherCore:
+    type: library.static
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: Sources/AetherCore
+    dependencies:
+      - sdk: CoreWLAN.framework
+      - sdk: CoreLocation.framework
+      - sdk: Network.framework
+      - sdk: SystemConfiguration.framework
+      - sdk: ServiceManagement.framework
+    settings:
+      base:
+        PRODUCT_NAME: AetherCore
+        SWIFT_VERSION: "6.0"
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) APP_STORE"
+        ARCHS: arm64
+      configs:
+        Release:
+          SWIFT_OPTIMIZATION_LEVEL: -O
+
+  Aether:
+    type: application
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: Sources/Aether
+      - path: AppStore/Assets.xcassets
+      - path: AppStore/PrivacyInfo.xcprivacy
+    dependencies:
+      - target: AetherCore
+      - sdk: AppKit.framework
+      - sdk: QuartzCore.framework
+      - sdk: CoreWLAN.framework
+      - sdk: CoreLocation.framework
+      - sdk: Network.framework
+      - sdk: SystemConfiguration.framework
+      - sdk: ServiceManagement.framework
+    info:
+      path: AppStore/Info-AppStore.plist
+      properties:
+        CFBundleDisplayName: Aether
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        LSApplicationCategoryType: public.app-category.utilities
+        LSUIElement: true
+        ITSAppUsesNonExemptEncryption: false
+        NSHighResolutionCapable: true
+        NSLocationUsageDescription: "Aether uses Location Services solely to read your Wi-Fi network name (SSID), BSSID, and nearby channel spectrum as required by macOS. Location data never leaves your Mac."
+        NSLocationWhenInUseUsageDescription: "Aether uses Location Services solely to read your Wi-Fi network name (SSID), BSSID, and nearby channel spectrum as required by macOS. Location data never leaves your Mac."
+        NSLocationAlwaysAndWhenInUseUsageDescription: "Aether uses Location Services solely to read your Wi-Fi network name (SSID), BSSID, and nearby channel spectrum as required by macOS. Location data never leaves your Mac."
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+          NSExceptionDomains:
+            captive.apple.com:
+              NSExceptionAllowsInsecureHTTPLoads: true
+        NSHumanReadableCopyright: "Copyright © 2026 Strange Chances. All rights reserved."
+    entitlements:
+      path: AppStore/Aether-AppStore.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.personal-information.location: true
+    settings:
+      base:
+        PRODUCT_NAME: Aether
+        PRODUCT_BUNDLE_IDENTIFIER: com.strangechances.Aether
+        DEVELOPMENT_TEAM: 6KM3577ETV
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: AppStore/Aether-AppStore.entitlements
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.0"
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) APP_STORE"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ENABLE_HARDENED_RUNTIME: YES
+        COMBINE_HIDPI_IMAGES: YES
+        ARCHS: arm64
+      configs:
+        Release:
+          SWIFT_OPTIMIZATION_LEVEL: -O

@@ -1,0 +1,635 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		047418669C03F6DB971B2FC1 /* OUIVendorLookup.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70FB36659CF313210744BA5 /* OUIVendorLookup.swift */; };
+		08E99A81730C30EFF7EB9D21 /* ChannelAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F0F28BE37EC6DF46B88D2C9 /* ChannelAnalyzer.swift */; };
+		0BABA0D05499F34BA92ABB86 /* MenuBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CCD379A274498D06073CF352 /* MenuBarIconView.swift */; };
+		0BE2F494A37957CD49C938E0 /* CoreWLAN.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AF4DC48F41212DFF1037367 /* CoreWLAN.framework */; };
+		144BF9B34906A6F8BD5C2BA2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3EDFD35C113702F2BB9909FB /* PrivacyInfo.xcprivacy */; };
+		26086180DAF77657E099C5BD /* NetworkProbes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 323CCF1BF77ADE6B3C648494 /* NetworkProbes.swift */; };
+		3074C126B52D92C9C4C245A4 /* Network.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BF205FC07B9374DA175A9605 /* Network.framework */; };
+		3124D37ED9EED7DD6E942E0D /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 068AB3C111F1F8610EC5ADE0 /* CoreLocation.framework */; };
+		3A0AEDF4E06461FC642FAA11 /* AetherGlyphs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D2DEDB5B62FC65A93580316 /* AetherGlyphs.swift */; };
+		51B5915F792EE66BDEA95790 /* RFPhysics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 273E4BD9D562B6ABA4202FD8 /* RFPhysics.swift */; };
+		5A4CE766844F9830F8BB52AD /* NativeNetworkTelemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AC90F79A5B172B91B787893 /* NativeNetworkTelemetry.swift */; };
+		6383608B47B93CDE9EB6FC32 /* QRCodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF1008EDBB026C78AAE91FD7 /* QRCodeView.swift */; };
+		65E9147835626F3EEFFDADD3 /* WiFiController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98B5124992A982D1E20CDC71 /* WiFiController.swift */; };
+		6D72DA2D526E5A394BE467EE /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1106FBE367ED336302C5A936 /* SystemConfiguration.framework */; };
+		77A589BC1753F603725ECBC4 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B35B77AF601097EEACCBC28D /* AppKit.framework */; };
+		7D2F37B739B9ED878ED6F0DA /* SystemConfiguration.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1106FBE367ED336302C5A936 /* SystemConfiguration.framework */; };
+		839047D8ADF5F7087E9E18A0 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29033D254BC99CAD60691047 /* main.swift */; };
+		84021B2535C3E03813099112 /* libAetherCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BD7AA9AABB0BF1540ACA4357 /* libAetherCore.a */; };
+		8582EB8F819997CCA84CC012 /* StudioWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75051CA78464B2F157FAF090 /* StudioWindowController.swift */; };
+		8FB5351D93368DCCEF06AA35 /* InterfaceCounters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EA7517D311A49043B0ABBD7 /* InterfaceCounters.swift */; };
+		9950618B1553BEB3BABDDBCB /* Network.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BF205FC07B9374DA175A9605 /* Network.framework */; };
+		9D3C4FC78E10D130B1C43F23 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 17F0BC8AF2BD432F279E80AC /* QuartzCore.framework */; };
+		AA2E679283502618E5F81B31 /* ConnectionMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC0149588500073FFF69774A /* ConnectionMonitor.swift */; };
+		B223B0C7C3F2EBA4A88A5DE9 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95651E7315D01DF2FC04C702 /* Models.swift */; };
+		B4DD91E0D8F0624228472B44 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAFE796DA2B49C179E867EBF /* AppDelegate.swift */; };
+		B624599B6BAF2973071F49EE /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61E2F8D2AD6E289251EE8A2C /* PopoverView.swift */; };
+		BA1845DFC5D178032819A932 /* TrustStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702781A03F7908E340996D75 /* TrustStore.swift */; };
+		C346A32B5DEF0884D59FF4E7 /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8E70553958A31DEE9444D53C /* ServiceManagement.framework */; };
+		C50096089FCC6940D8CF49B7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D238A274E7681E9B677325D2 /* Assets.xcassets */; };
+		C97079AC4C2EF57F2DDD98DD /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8E70553958A31DEE9444D53C /* ServiceManagement.framework */; };
+		CBB24C62E1DFFB96366BAFAF /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 068AB3C111F1F8610EC5ADE0 /* CoreLocation.framework */; };
+		DC3CFEDEE967A3503AE058C3 /* SystemParsers.swift in Sources */ = {isa = PBXBuildFile; fileRef = E420AE83154850AB446B61D3 /* SystemParsers.swift */; };
+		DDAFFB7F44C7C64B02F3DB86 /* TrustAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71303504B610897776441617 /* TrustAnalyzer.swift */; };
+		E140C181950587595E2FA0FA /* InstrumentStageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF5C6B18D84509E6344B7484 /* InstrumentStageView.swift */; };
+		E9716603DB29FBFDD5DCA362 /* HumanSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = F850E0DF6E6D9F2EF0BFD106 /* HumanSummary.swift */; };
+		F03ED08943C866F263E59200 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F926D41B82A57D22F30E169 /* AppState.swift */; };
+		F0B8AC1CC1BD7785980B33A2 /* MenuBarPositioner.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEA5A2EFE1B43D5CCFA86827 /* MenuBarPositioner.swift */; };
+		F5AFBF7A42B917F06BF22102 /* CoreWLAN.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AF4DC48F41212DFF1037367 /* CoreWLAN.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		FC1747E0341A04F419EE845B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E7C705F7C33D8C121C974109 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 35BCC85B3BEC0758B2852635;
+			remoteInfo = AetherCore;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		068AB3C111F1F8610EC5ADE0 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
+		0F0F28BE37EC6DF46B88D2C9 /* ChannelAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChannelAnalyzer.swift; sourceTree = "<group>"; };
+		1106FBE367ED336302C5A936 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
+		17F0BC8AF2BD432F279E80AC /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		1F926D41B82A57D22F30E169 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		273E4BD9D562B6ABA4202FD8 /* RFPhysics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RFPhysics.swift; sourceTree = "<group>"; };
+		29033D254BC99CAD60691047 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		323CCF1BF77ADE6B3C648494 /* NetworkProbes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkProbes.swift; sourceTree = "<group>"; };
+		3EDFD35C113702F2BB9909FB /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		4D2DEDB5B62FC65A93580316 /* AetherGlyphs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AetherGlyphs.swift; sourceTree = "<group>"; };
+		5AF4DC48F41212DFF1037367 /* CoreWLAN.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreWLAN.framework; path = System/Library/Frameworks/CoreWLAN.framework; sourceTree = SDKROOT; };
+		61E2F8D2AD6E289251EE8A2C /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
+		6AC90F79A5B172B91B787893 /* NativeNetworkTelemetry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeNetworkTelemetry.swift; sourceTree = "<group>"; };
+		702781A03F7908E340996D75 /* TrustStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustStore.swift; sourceTree = "<group>"; };
+		71303504B610897776441617 /* TrustAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrustAnalyzer.swift; sourceTree = "<group>"; };
+		75051CA78464B2F157FAF090 /* StudioWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudioWindowController.swift; sourceTree = "<group>"; };
+		8E70553958A31DEE9444D53C /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
+		8EA7517D311A49043B0ABBD7 /* InterfaceCounters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InterfaceCounters.swift; sourceTree = "<group>"; };
+		95651E7315D01DF2FC04C702 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		98B5124992A982D1E20CDC71 /* WiFiController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiFiController.swift; sourceTree = "<group>"; };
+		AF079DE4E9E495EEF6637D03 /* Aether.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Aether.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B35B77AF601097EEACCBC28D /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		BD7AA9AABB0BF1540ACA4357 /* libAetherCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libAetherCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		BF205FC07B9374DA175A9605 /* Network.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Network.framework; path = System/Library/Frameworks/Network.framework; sourceTree = SDKROOT; };
+		CC0149588500073FFF69774A /* ConnectionMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionMonitor.swift; sourceTree = "<group>"; };
+		CCD379A274498D06073CF352 /* MenuBarIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconView.swift; sourceTree = "<group>"; };
+		CEA5A2EFE1B43D5CCFA86827 /* MenuBarPositioner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPositioner.swift; sourceTree = "<group>"; };
+		CF5C6B18D84509E6344B7484 /* InstrumentStageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstrumentStageView.swift; sourceTree = "<group>"; };
+		D238A274E7681E9B677325D2 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		DAFE796DA2B49C179E867EBF /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		DF1008EDBB026C78AAE91FD7 /* QRCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeView.swift; sourceTree = "<group>"; };
+		E420AE83154850AB446B61D3 /* SystemParsers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemParsers.swift; sourceTree = "<group>"; };
+		F70FB36659CF313210744BA5 /* OUIVendorLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OUIVendorLookup.swift; sourceTree = "<group>"; };
+		F850E0DF6E6D9F2EF0BFD106 /* HumanSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumanSummary.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		5046DF9BFF3D37DCD73624CE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				84021B2535C3E03813099112 /* libAetherCore.a in Frameworks */,
+				77A589BC1753F603725ECBC4 /* AppKit.framework in Frameworks */,
+				9D3C4FC78E10D130B1C43F23 /* QuartzCore.framework in Frameworks */,
+				0BE2F494A37957CD49C938E0 /* CoreWLAN.framework in Frameworks */,
+				3124D37ED9EED7DD6E942E0D /* CoreLocation.framework in Frameworks */,
+				9950618B1553BEB3BABDDBCB /* Network.framework in Frameworks */,
+				7D2F37B739B9ED878ED6F0DA /* SystemConfiguration.framework in Frameworks */,
+				C97079AC4C2EF57F2DDD98DD /* ServiceManagement.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ABB8A5ABE51B0A3BF54DB975 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F5AFBF7A42B917F06BF22102 /* CoreWLAN.framework in Frameworks */,
+				CBB24C62E1DFFB96366BAFAF /* CoreLocation.framework in Frameworks */,
+				3074C126B52D92C9C4C245A4 /* Network.framework in Frameworks */,
+				6D72DA2D526E5A394BE467EE /* SystemConfiguration.framework in Frameworks */,
+				C346A32B5DEF0884D59FF4E7 /* ServiceManagement.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		01528BCFE67B0EC3DC7BBD9A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				B35B77AF601097EEACCBC28D /* AppKit.framework */,
+				068AB3C111F1F8610EC5ADE0 /* CoreLocation.framework */,
+				5AF4DC48F41212DFF1037367 /* CoreWLAN.framework */,
+				BF205FC07B9374DA175A9605 /* Network.framework */,
+				17F0BC8AF2BD432F279E80AC /* QuartzCore.framework */,
+				8E70553958A31DEE9444D53C /* ServiceManagement.framework */,
+				1106FBE367ED336302C5A936 /* SystemConfiguration.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		01EBE4DD8916DF7BB0D0EAD5 /* Aether */ = {
+			isa = PBXGroup;
+			children = (
+				BF01D69CCFC5D10DCBD62537 /* App */,
+				AD74AC289F81D709D0C3CE2D /* UI */,
+			);
+			name = Aether;
+			path = Sources/Aether;
+			sourceTree = "<group>";
+		};
+		7CCE34B3C0A23C3EA91514B0 = {
+			isa = PBXGroup;
+			children = (
+				01EBE4DD8916DF7BB0D0EAD5 /* Aether */,
+				E739C9A2437CD2E07C6EB048 /* AetherCore */,
+				F6A7B08811F0840BEDA8766A /* AppStore */,
+				01528BCFE67B0EC3DC7BBD9A /* Frameworks */,
+				8A93DD82B280EDA489D217FB /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		8A93DD82B280EDA489D217FB /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AF079DE4E9E495EEF6637D03 /* Aether.app */,
+				BD7AA9AABB0BF1540ACA4357 /* libAetherCore.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		AD74AC289F81D709D0C3CE2D /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				4D2DEDB5B62FC65A93580316 /* AetherGlyphs.swift */,
+				CF5C6B18D84509E6344B7484 /* InstrumentStageView.swift */,
+				CCD379A274498D06073CF352 /* MenuBarIconView.swift */,
+				61E2F8D2AD6E289251EE8A2C /* PopoverView.swift */,
+				DF1008EDBB026C78AAE91FD7 /* QRCodeView.swift */,
+				75051CA78464B2F157FAF090 /* StudioWindowController.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		BF01D69CCFC5D10DCBD62537 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				DAFE796DA2B49C179E867EBF /* AppDelegate.swift */,
+				1F926D41B82A57D22F30E169 /* AppState.swift */,
+				29033D254BC99CAD60691047 /* main.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		E739C9A2437CD2E07C6EB048 /* AetherCore */ = {
+			isa = PBXGroup;
+			children = (
+				0F0F28BE37EC6DF46B88D2C9 /* ChannelAnalyzer.swift */,
+				CC0149588500073FFF69774A /* ConnectionMonitor.swift */,
+				F850E0DF6E6D9F2EF0BFD106 /* HumanSummary.swift */,
+				8EA7517D311A49043B0ABBD7 /* InterfaceCounters.swift */,
+				CEA5A2EFE1B43D5CCFA86827 /* MenuBarPositioner.swift */,
+				95651E7315D01DF2FC04C702 /* Models.swift */,
+				6AC90F79A5B172B91B787893 /* NativeNetworkTelemetry.swift */,
+				323CCF1BF77ADE6B3C648494 /* NetworkProbes.swift */,
+				F70FB36659CF313210744BA5 /* OUIVendorLookup.swift */,
+				273E4BD9D562B6ABA4202FD8 /* RFPhysics.swift */,
+				E420AE83154850AB446B61D3 /* SystemParsers.swift */,
+				71303504B610897776441617 /* TrustAnalyzer.swift */,
+				702781A03F7908E340996D75 /* TrustStore.swift */,
+				98B5124992A982D1E20CDC71 /* WiFiController.swift */,
+			);
+			name = AetherCore;
+			path = Sources/AetherCore;
+			sourceTree = "<group>";
+		};
+		F6A7B08811F0840BEDA8766A /* AppStore */ = {
+			isa = PBXGroup;
+			children = (
+				D238A274E7681E9B677325D2 /* Assets.xcassets */,
+				3EDFD35C113702F2BB9909FB /* PrivacyInfo.xcprivacy */,
+			);
+			path = AppStore;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		35BCC85B3BEC0758B2852635 /* AetherCore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2B4FF344945CF22FF9623462 /* Build configuration list for PBXNativeTarget "AetherCore" */;
+			buildPhases = (
+				C4A2741B69A83DE6EF334A67 /* Sources */,
+				EB630D4515A16EB492123B8D /* Copy Swift Objective-C Interface Header */,
+				ABB8A5ABE51B0A3BF54DB975 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AetherCore;
+			packageProductDependencies = (
+			);
+			productName = AetherCore;
+			productReference = BD7AA9AABB0BF1540ACA4357 /* libAetherCore.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+		D59EF0ACCA124A422E890B70 /* Aether */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1098AD2A372F4DD2918AFFA /* Build configuration list for PBXNativeTarget "Aether" */;
+			buildPhases = (
+				E885CAA05B4AF3999B54E2C7 /* Sources */,
+				54FC1522C074745B3897AA41 /* Resources */,
+				5046DF9BFF3D37DCD73624CE /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				79B301CE3A26C4BAF4F33A23 /* PBXTargetDependency */,
+			);
+			name = Aether;
+			packageProductDependencies = (
+			);
+			productName = Aether;
+			productReference = AF079DE4E9E495EEF6637D03 /* Aether.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E7C705F7C33D8C121C974109 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					D59EF0ACCA124A422E890B70 = {
+						DevelopmentTeam = 6KM3577ETV;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = B356F83369813E0209654ED2 /* Build configuration list for PBXProject "Aether" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 7CCE34B3C0A23C3EA91514B0;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 8A93DD82B280EDA489D217FB /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D59EF0ACCA124A422E890B70 /* Aether */,
+				35BCC85B3BEC0758B2852635 /* AetherCore */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		54FC1522C074745B3897AA41 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C50096089FCC6940D8CF49B7 /* Assets.xcassets in Resources */,
+				144BF9B34906A6F8BD5C2BA2 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		EB630D4515A16EB492123B8D /* Copy Swift Objective-C Interface Header */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(DERIVED_SOURCES_DIR)/$(SWIFT_OBJC_INTERFACE_HEADER_NAME)",
+			);
+			name = "Copy Swift Objective-C Interface Header";
+			outputPaths = (
+				"$(BUILT_PRODUCTS_DIR)/include/$(PRODUCT_MODULE_NAME)/$(SWIFT_OBJC_INTERFACE_HEADER_NAME)",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "ditto \"${SCRIPT_INPUT_FILE_0}\" \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C4A2741B69A83DE6EF334A67 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				08E99A81730C30EFF7EB9D21 /* ChannelAnalyzer.swift in Sources */,
+				AA2E679283502618E5F81B31 /* ConnectionMonitor.swift in Sources */,
+				E9716603DB29FBFDD5DCA362 /* HumanSummary.swift in Sources */,
+				8FB5351D93368DCCEF06AA35 /* InterfaceCounters.swift in Sources */,
+				F0B8AC1CC1BD7785980B33A2 /* MenuBarPositioner.swift in Sources */,
+				B223B0C7C3F2EBA4A88A5DE9 /* Models.swift in Sources */,
+				5A4CE766844F9830F8BB52AD /* NativeNetworkTelemetry.swift in Sources */,
+				26086180DAF77657E099C5BD /* NetworkProbes.swift in Sources */,
+				047418669C03F6DB971B2FC1 /* OUIVendorLookup.swift in Sources */,
+				51B5915F792EE66BDEA95790 /* RFPhysics.swift in Sources */,
+				DC3CFEDEE967A3503AE058C3 /* SystemParsers.swift in Sources */,
+				DDAFFB7F44C7C64B02F3DB86 /* TrustAnalyzer.swift in Sources */,
+				BA1845DFC5D178032819A932 /* TrustStore.swift in Sources */,
+				65E9147835626F3EEFFDADD3 /* WiFiController.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E885CAA05B4AF3999B54E2C7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3A0AEDF4E06461FC642FAA11 /* AetherGlyphs.swift in Sources */,
+				B4DD91E0D8F0624228472B44 /* AppDelegate.swift in Sources */,
+				F03ED08943C866F263E59200 /* AppState.swift in Sources */,
+				E140C181950587595E2FA0FA /* InstrumentStageView.swift in Sources */,
+				0BABA0D05499F34BA92ABB86 /* MenuBarIconView.swift in Sources */,
+				B624599B6BAF2973071F49EE /* PopoverView.swift in Sources */,
+				6383608B47B93CDE9EB6FC32 /* QRCodeView.swift in Sources */,
+				8582EB8F819997CCA84CC012 /* StudioWindowController.swift in Sources */,
+				839047D8ADF5F7087E9E18A0 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		79B301CE3A26C4BAF4F33A23 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 35BCC85B3BEC0758B2852635 /* AetherCore */;
+			targetProxy = FC1747E0341A04F419EE845B /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		535B5BBD68E34C96ECFC5644 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		63CFFF758E1266B2ADB492F2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.strangechances.AetherCore;
+				PRODUCT_NAME = AetherCore;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APP_STORE";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		8F65DEFA5F0FDB923D7B6E4B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "AppStore/Aether-AppStore.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6KM3577ETV;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "AppStore/Info-AppStore.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.strangechances.Aether;
+				PRODUCT_NAME = Aether;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APP_STORE";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		C9B4819D3C3C177AA2210038 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.strangechances.AetherCore;
+				PRODUCT_NAME = AetherCore;
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APP_STORE";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		D117200E3E6E0A8910494FAE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "AppStore/Aether-AppStore.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6KM3577ETV;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "AppStore/Info-AppStore.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-ObjC",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.strangechances.Aether;
+				PRODUCT_NAME = Aether;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APP_STORE";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		D31BFB8E8805FFAB029AB03F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2B4FF344945CF22FF9623462 /* Build configuration list for PBXNativeTarget "AetherCore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				63CFFF758E1266B2ADB492F2 /* Debug */,
+				C9B4819D3C3C177AA2210038 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A1098AD2A372F4DD2918AFFA /* Build configuration list for PBXNativeTarget "Aether" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8F65DEFA5F0FDB923D7B6E4B /* Debug */,
+				D117200E3E6E0A8910494FAE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B356F83369813E0209654ED2 /* Build configuration list for PBXProject "Aether" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D31BFB8E8805FFAB029AB03F /* Debug */,
+				535B5BBD68E34C96ECFC5644 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = E7C705F7C33D8C121C974109 /* Project object */;
+}
