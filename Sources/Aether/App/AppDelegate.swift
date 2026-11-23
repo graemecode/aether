@@ -161,7 +161,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             state.$wifi.map(\.powerOn).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$knownSSIDs.map(\.count).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$rawScanBSSIDs.map(\.count).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
-            state.$showSettingsWhileDisconnected.removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
+            state.$connectionError.map { $0 != nil }.removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
+            state.$connectingSSID.map { $0 != nil }.removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$didAttemptLocationPrompt.removeDuplicates().map { _ in () }.eraseToAnyPublisher()
         ]
         Publishers.MergeMany(resizeSignals)
@@ -325,7 +326,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 case "2": AppState.shared.stageMode = .spectrum; AppState.shared.performHaptic(); return true
                 case "3": AppState.shared.stageMode = .route; AppState.shared.performHaptic(); return true
                 case "r":
-                    Task { await AppState.shared.scanNearbyNetworks() }
+                    Task { await AppState.shared.scanNearbyNetworks(force: true) }
                     AppState.shared.performHaptic()
                     return true
                 default: break

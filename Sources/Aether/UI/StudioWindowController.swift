@@ -116,7 +116,7 @@ struct AetherStudioView: View {
                 HStack(spacing: 8) {
                     Button {
                         Task {
-                            await state.scanNearbyNetworks()
+                            await state.scanNearbyNetworks(force: true)
                             await state.refreshEnvironment(includeHops: true)
                         }
                     } label: {

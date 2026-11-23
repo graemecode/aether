@@ -29,145 +29,129 @@ struct PopoverView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            if state.isDisconnected {
-                disconnectedHeader
+            // 1. Full-Bleed OLED Instrument Stage (FLUX / SPECTRUM / ROUTE) + Power + ↗ Studio Expand
+            // Always visible whether connected or disconnected so switching networks never collapses or traps the UI.
+            InstrumentStageView(state: state, onOpenStudio: onOpenStudio)
 
-                if state.showSettingsWhileDisconnected {
-                    VStack(alignment: .leading, spacing: 11) {
-                        morePanel
-                    }
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.white.opacity(0.036))
-                    .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
-                    .overlay(cardRimOverlay(cornerRadius: 11))
-                } else {
-                    disconnectedWiFiCard
-                }
-            } else {
-                // 1. Full-Bleed OLED Instrument Stage (FLUX / SPECTRUM / ROUTE) + ↗ Studio Expand
-                InstrumentStageView(state: state, onOpenStudio: onOpenStudio)
-
-                // Captive Portal Alert Bar (only shown when intercepted by hotel/airport portal)
-                if state.captivePortal.isDetected {
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(Color(red: 1.0, green: 0.72, blue: 0.30))
-                            .frame(width: 6, height: 6)
-                            .shadow(color: Color(red: 1.0, green: 0.72, blue: 0.30).opacity(0.7), radius: 3)
-                        Text("Wi-Fi sign-in required")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.white.opacity(0.95))
-                        Spacer()
-                        Button("Sign In") { state.openCaptivePortal() }
-                            .font(.system(size: 9.6, weight: .semibold))
-                            .foregroundColor(.black)
-                            .padding(.horizontal, 10)
-                            .frame(height: 22)
-                            .background(Color.white)
-                            .clipShape(Capsule())
-                            .buttonStyle(.plain)
-                    }
-                    .padding(.horizontal, 11)
-                    .frame(height: 34)
-                    .background(Color(red: 1.0, green: 0.72, blue: 0.30).opacity(0.14))
-                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(Color(red: 1.0, green: 0.72, blue: 0.30).opacity(0.36), lineWidth: 1))
-                }
-
-                // 2. Relatable 4-Step Connection Health Chain (hidden when Route stage already visualizes the 4 hops)
-                if state.stageMode != .route {
-                    hopHealthStrip
-                }
-
-                // Calm Upstream-Down Diagnosis (when router responds but ISP/portal blocks internet)
-                if state.isUpstreamDown && !state.captivePortal.isDetected {
-                    HStack(spacing: 8) {
-                        Circle().fill(Color(red: 1.0, green: 0.72, blue: 0.30)).frame(width: 5.5, height: 5.5)
-                        Text("Router is up, but internet isn't responding")
-                            .font(.system(size: 10.0, weight: .medium))
-                            .foregroundColor(.white.opacity(0.9))
-                            .lineLimit(1)
-                        Spacer()
-                        Button("Check Sign-In") { state.checkCaptivePortalManually() }
-                            .buttonStyle(AetherHairlineButtonStyle())
-                    }
-                    .padding(.horizontal, 10)
-                    .frame(height: 32)
-                    .background(Color(red: 1.0, green: 0.72, blue: 0.30).opacity(0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(Color(red: 1.0, green: 0.72, blue: 0.30).opacity(0.28), lineWidth: 1))
-                }
-
-                // One-Time Calm Setup Strip (disappears permanently on dismiss or once Location is granted)
-                if state.shouldShowOnboardingStrip {
-                    onboardingStrip
-                        .transition(.opacity)
-                }
-
-                // 3. Quiet Architectural Segmented Tab Bar (Speed · Privacy · Wi-Fi · More)
-                HStack(spacing: 3) {
-                    ForEach(PanelTab.allCases) { tab in
-                        let isActive = state.activeTab == tab
-                        let badge = badgeColor(for: tab)
-                        Button {
-                            withAnimation(reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.86)) {
-                                state.selectTab(tab)
-                            }
-                        } label: {
-                            HStack(spacing: 5) {
-                                Image(systemName: tabSymbol(for: tab))
-                                    .font(.system(size: 10.6, weight: isActive ? .semibold : .medium))
-                                    .foregroundColor(isActive ? .white : inkDim)
-                                Text(tabTitle(for: tab))
-                                    .font(.system(size: 10.4, weight: isActive ? .semibold : .medium))
-                                    .foregroundColor(isActive ? .white : inkDim)
-                                if let badge {
-                                    Circle()
-                                        .fill(badge)
-                                        .frame(width: 4.5, height: 4.5)
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 28)
-                            .background {
-                                if isActive {
-                                    RoundedRectangle(cornerRadius: 7.5, style: .continuous)
-                                        .fill(Color.white.opacity(0.12))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 7.5, style: .continuous)
-                                                .stroke(
-                                                    LinearGradient(
-                                                        colors: [Color.white.opacity(0.24), Color.white.opacity(0.06)],
-                                                        startPoint: .top,
-                                                        endPoint: .bottom
-                                                    ),
-                                                    lineWidth: 0.85
-                                                )
-                                        )
-                                        .matchedGeometryEffect(id: "popoverTabPill", in: tabBarNS)
-                                }
-                            }
-                            .contentShape(Rectangle())
-                        }
+            // Captive Portal Alert Bar (only shown when intercepted by hotel/airport portal)
+            if state.captivePortal.isDetected {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(Color(red: 1.0, green: 0.72, blue: 0.30))
+                        .frame(width: 6, height: 6)
+                        .shadow(color: Color(red: 1.0, green: 0.72, blue: 0.30).opacity(0.7), radius: 3)
+                    Text("Wi-Fi sign-in required")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.95))
+                    Spacer()
+                    Button("Sign In") { state.openCaptivePortal() }
+                        .font(.system(size: 9.6, weight: .semibold))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 10)
+                        .frame(height: 22)
+                        .background(Color.white)
+                        .clipShape(Capsule())
                         .buttonStyle(.plain)
-                        .help("\(tab.help) (⌘\(tab.rawValue + 1))")
-                        .accessibilityLabel(tabTitle(for: tab))
-                        .accessibilityHint(tab.help)
-                        .accessibilityAddTraits(isActive ? [.isSelected] : [])
-                    }
                 }
-                .padding(3)
-                .background(Color.white.opacity(0.036))
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .stroke(hairSoft, lineWidth: 0.85)
-                )
-
-                // 4. Flattened Active Section (single-shell obsidian typography + hairlines, zero box-in-box fatigue)
-                activeTabCard
+                .padding(.horizontal, 11)
+                .frame(height: 34)
+                .background(Color(red: 1.0, green: 0.72, blue: 0.30).opacity(0.14))
+                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(Color(red: 1.0, green: 0.72, blue: 0.30).opacity(0.36), lineWidth: 1))
             }
+
+            // 2. Relatable 4-Step Connection Health Chain (hidden while disconnected or when Route stage already shows the 4 hops)
+            if !state.isDisconnected && state.stageMode != .route {
+                hopHealthStrip
+            }
+
+            // Calm Upstream-Down Diagnosis (when router responds but ISP/portal blocks internet)
+            if state.isUpstreamDown && !state.captivePortal.isDetected {
+                HStack(spacing: 8) {
+                    Circle().fill(Color(red: 1.0, green: 0.72, blue: 0.30)).frame(width: 5.5, height: 5.5)
+                    Text("Router is up, but internet isn't responding")
+                        .font(.system(size: 10.0, weight: .medium))
+                        .foregroundColor(.white.opacity(0.9))
+                        .lineLimit(1)
+                    Spacer()
+                    Button("Check Sign-In") { state.checkCaptivePortalManually() }
+                        .buttonStyle(AetherHairlineButtonStyle())
+                }
+                .padding(.horizontal, 10)
+                .frame(height: 32)
+                .background(Color(red: 1.0, green: 0.72, blue: 0.30).opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(Color(red: 1.0, green: 0.72, blue: 0.30).opacity(0.28), lineWidth: 1))
+            }
+
+            // One-Time Calm Setup Strip (disappears permanently on dismiss or once Location is granted)
+            if state.shouldShowOnboardingStrip {
+                onboardingStrip
+                    .transition(.opacity)
+            }
+
+            // 3. Quiet Architectural Segmented Tab Bar (Speed · Privacy · Wi-Fi · More — always reachable!)
+            HStack(spacing: 3) {
+                ForEach(PanelTab.allCases) { tab in
+                    let isActive = state.activeTab == tab
+                    let badge = badgeColor(for: tab)
+                    Button {
+                        withAnimation(reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.86)) {
+                            state.selectTab(tab)
+                        }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: tabSymbol(for: tab))
+                                .font(.system(size: 10.6, weight: isActive ? .semibold : .medium))
+                                .foregroundColor(isActive ? .white : inkDim)
+                            Text(tabTitle(for: tab))
+                                .font(.system(size: 10.4, weight: isActive ? .semibold : .medium))
+                                .foregroundColor(isActive ? .white : inkDim)
+                            if let badge {
+                                Circle()
+                                    .fill(badge)
+                                    .frame(width: 4.5, height: 4.5)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 28)
+                        .background {
+                            if isActive {
+                                RoundedRectangle(cornerRadius: 7.5, style: .continuous)
+                                    .fill(Color.white.opacity(0.12))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 7.5, style: .continuous)
+                                            .stroke(
+                                                LinearGradient(
+                                                    colors: [Color.white.opacity(0.24), Color.white.opacity(0.06)],
+                                                    startPoint: .top,
+                                                    endPoint: .bottom
+                                                ),
+                                                lineWidth: 0.85
+                                            )
+                                    )
+                                    .matchedGeometryEffect(id: "popoverTabPill", in: tabBarNS)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("\(tab.help) (⌘\(tab.rawValue + 1))")
+                    .accessibilityLabel(tabTitle(for: tab))
+                    .accessibilityHint(tab.help)
+                    .accessibilityAddTraits(isActive ? [.isSelected] : [])
+                }
+            }
+            .padding(3)
+            .background(Color.white.opacity(0.036))
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(hairSoft, lineWidth: 0.85)
+            )
+
+            // 4. Flattened Active Section (single-shell obsidian typography + hairlines, zero box-in-box fatigue)
+            activeTabCard
 
             // 5. Transient Status Banner
             if let banner = state.statusBanner {
@@ -222,6 +206,18 @@ struct PopoverView: View {
                     lineWidth: 1
                 )
         )
+        .onChange(of: state.wifi.isConnected) { _, connected in
+            if connected {
+                passwordPromptSSID = nil
+                passwordInput = ""
+            }
+        }
+        .onChange(of: state.isPopoverOpen) { _, open in
+            if !open {
+                passwordPromptSSID = nil
+                passwordInput = ""
+            }
+        }
     }
 
     // MARK: - 4-Step Human Connection Chain
@@ -358,210 +354,6 @@ struct PopoverView: View {
         .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Color.white.opacity(0.14), lineWidth: 1))
     }
 
-    // MARK: - Disconnected-First Wi-Fi Picker Experience
-
-    private var disconnectedHeader: some View {
-        HStack(spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.06))
-                    .frame(width: 34, height: 34)
-                    .overlay(Circle().stroke(Color.white.opacity(0.13), lineWidth: 1))
-                Image(systemName: state.wifi.powerOn ? "wifi" : "wifi.slash")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(state.wifi.powerOn ? .white.opacity(0.92) : inkDim)
-            }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(state.wifi.powerOn ? "Join Wi-Fi" : "Wi-Fi Off")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                Text(disconnectedSubtitle)
-                    .font(.system(size: 8.6, weight: .medium, design: .monospaced))
-                    .foregroundColor(inkDim)
-                    .tracking(0.45)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 4)
-
-            HStack(spacing: 6) {
-                if state.wifi.powerOn && !state.showSettingsWhileDisconnected {
-                    Button {
-                        Task { await state.scanNearbyNetworks() }
-                    } label: {
-                        Group {
-                            if state.isScanningNetworks {
-                                ProgressView().controlSize(.mini).scaleEffect(0.65)
-                            } else {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.system(size: 10.5, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.84))
-                            }
-                        }
-                        .frame(width: 26, height: 26)
-                        .background(Color.white.opacity(0.06))
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white.opacity(0.14), lineWidth: 1))
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(state.isScanningNetworks)
-                    .help("Scan for nearby Wi-Fi networks (R)")
-                    .accessibilityLabel("Scan nearby Wi-Fi networks")
-                }
-
-                Button {
-                    state.toggleWiFiPower()
-                } label: {
-                    Image(systemName: "power")
-                        .font(.system(size: 10.5, weight: .medium))
-                        .foregroundColor(state.wifi.powerOn ? .white.opacity(0.88) : Color(red: 1.0, green: 0.45, blue: 0.40))
-                        .frame(width: 26, height: 26)
-                        .background(Color.white.opacity(0.06))
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.white.opacity(0.14), lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-                .help(state.wifi.powerOn ? "Turn Wi-Fi Off" : "Turn Wi-Fi On")
-                .accessibilityLabel(state.wifi.powerOn ? "Turn Wi-Fi Off" : "Turn Wi-Fi On")
-
-                Button {
-                    withAnimation(.spring(response: 0.24, dampingFraction: 0.86)) {
-                        state.showSettingsWhileDisconnected.toggle()
-                    }
-                    state.performHaptic()
-                    DispatchQueue.main.async { onRequestResize?() }
-                } label: {
-                    Image(systemName: state.showSettingsWhileDisconnected ? "wifi" : "slider.horizontal.3")
-                        .font(.system(size: 10.5, weight: .medium))
-                        .foregroundColor(state.showSettingsWhileDisconnected ? .black : .white.opacity(0.84))
-                        .frame(width: 26, height: 26)
-                        .background(state.showSettingsWhileDisconnected ? Color.white : Color.white.opacity(0.06))
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(state.showSettingsWhileDisconnected ? Color.clear : Color.white.opacity(0.14), lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-                .help(state.showSettingsWhileDisconnected ? "Back to Wi-Fi Networks" : "Settings & Tools")
-                .accessibilityLabel(state.showSettingsWhileDisconnected ? "Back to Wi-Fi Networks" : "Settings")
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(
-            LinearGradient(
-                colors: [Color(red: 0.048, green: 0.056, blue: 0.070), Color(red: 0.024, green: 0.028, blue: 0.036)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
-        .overlay(cardRimOverlay(cornerRadius: 11))
-    }
-
-    private var disconnectedSubtitle: String {
-        if !state.wifi.powerOn { return "RADIO POWERED OFF" }
-        if state.isScanningNetworks { return "SCANNING AIRWAVES…" }
-        if !state.nearbyNetworks.isEmpty {
-            let n = state.nearbyNetworks.count
-            return "\(n) \(n == 1 ? "NETWORK" : "NETWORKS") NEARBY"
-        }
-        if !state.rawScanBSSIDs.isEmpty {
-            let n = state.rawScanBSSIDs.count
-            return "\(n) \(n == 1 ? "SIGNAL" : "SIGNALS") IN RANGE · NAMES HIDDEN"
-        }
-        return "NOT CONNECTED"
-    }
-
-    private var disconnectedWiFiCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if !state.wifi.powerOn {
-                VStack(spacing: 9) {
-                    Image(systemName: "wifi.slash")
-                        .font(.system(size: 22, weight: .light))
-                        .foregroundColor(Color.white.opacity(0.58))
-                    Text("Wi-Fi is turned off")
-                        .font(.system(size: 12.6, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.95))
-                    Text("Turn Wi-Fi on to scan and join nearby networks.")
-                        .font(.system(size: 9.8))
-                        .foregroundColor(inkDim)
-                        .multilineTextAlignment(.center)
-                    Button("Turn Wi-Fi On") {
-                        state.toggleWiFiPower()
-                    }
-                    .font(.system(size: 10.4, weight: .semibold))
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 16)
-                    .frame(height: 29)
-                    .background(Color.white)
-                    .clipShape(Capsule())
-                    .buttonStyle(.plain)
-                    .padding(.top, 2)
-                }
-                .padding(.vertical, 16)
-                .frame(maxWidth: .infinity)
-            } else {
-                if !state.hasLocationAccess {
-                    locationPermissionCard(compact: false)
-                }
-
-                if !state.nearbyNetworks.isEmpty {
-                    nearbyNetworksList(maxHeight: 268, limit: 16)
-                } else if state.hasLocationAccess {
-                    HStack(spacing: 8) {
-                        if state.isScanningNetworks {
-                            ProgressView().controlSize(.small).scaleEffect(0.72)
-                            Text("Scanning for nearby Wi-Fi networks…")
-                                .font(.system(size: 10.4))
-                                .foregroundColor(inkSoft)
-                        } else {
-                            Text("No Wi-Fi networks found in range.")
-                                .font(.system(size: 10.4))
-                                .foregroundColor(inkDim)
-                            Spacer()
-                            Button("Scan Again") { Task { await state.scanNearbyNetworks() } }
-                                .buttonStyle(AetherHairlineButtonStyle())
-                        }
-                    }
-                    .padding(.vertical, 10)
-                }
-
-                // Fallback: macOS exposes saved profile names even before Location Services is granted!
-                if state.nearbyNetworks.isEmpty && !state.knownSSIDs.isEmpty {
-                    savedNetworksSection(maxHeight: 175)
-                }
-
-                if let err = state.connectionError {
-                    Text(err)
-                        .font(.system(size: 9.5))
-                        .foregroundColor(Color(red: 1.0, green: 0.55, blue: 0.52))
-                }
-            }
-
-            Divider().background(hairSoft)
-
-            HStack(spacing: 12) {
-                Button("MACOS WI-FI ↗") { state.openWiFiSettings() }
-                    .buttonStyle(QuietFooterLinkStyle(active: true))
-                    .help("Open macOS Wi-Fi Settings")
-
-                Button("STUDIO ↗") { onOpenStudio() }
-                    .buttonStyle(QuietFooterLinkStyle())
-
-                Spacer()
-
-                Button("QUIT") { onQuit() }
-                    .buttonStyle(QuietFooterLinkStyle())
-            }
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.036))
-        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
-        .overlay(cardRimOverlay(cornerRadius: 11))
-    }
-
     private func locationPermissionCard(compact: Bool) -> some View {
         let signalCount = state.rawScanBSSIDs.count
         let title: String = {
@@ -648,8 +440,8 @@ struct PopoverView: View {
                         VStack(spacing: 6) {
                             HoverSurfaceButton(cornerRadius: 7.5) {
                                 Task {
-                                    let ok = await state.connectToNetwork(ssid: ssid, password: nil)
-                                    if !ok, let err = state.connectionError, !err.localizedCaseInsensitiveContains("not in range") {
+                                    let outcome = await state.connectToNetwork(ssid: ssid, password: nil)
+                                    if outcome == .needsPassword {
                                         passwordInput = ""
                                         passwordPromptSSID = ssid
                                         DispatchQueue.main.async { onRequestResize?() }
@@ -678,27 +470,7 @@ struct PopoverView: View {
                             }
 
                             if passwordPromptSSID == ssid {
-                                HStack(spacing: 6) {
-                                    SecureField("Wi-Fi password", text: $passwordInput)
-                                        .textFieldStyle(.plain)
-                                        .font(.system(size: 11))
-                                        .padding(.horizontal, 8)
-                                        .frame(height: 27)
-                                        .background(Color.black.opacity(0.48))
-                                        .clipShape(RoundedRectangle(cornerRadius: 6.5, style: .continuous))
-                                        .overlay(RoundedRectangle(cornerRadius: 6.5, style: .continuous).stroke(Color.white.opacity(0.18), lineWidth: 1))
-                                        .onSubmit { submitPasswordConnect(ssid: ssid) }
-
-                                    Button("Join") { submitPasswordConnect(ssid: ssid) }
-                                        .font(.system(size: 9.6, weight: .semibold))
-                                        .foregroundColor(.black)
-                                        .padding(.horizontal, 11)
-                                        .frame(height: 27)
-                                        .background(Color.white)
-                                        .clipShape(RoundedRectangle(cornerRadius: 6.5, style: .continuous))
-                                        .buttonStyle(.plain)
-                                }
-                                .padding(.horizontal, 4)
+                                inlinePasswordField(ssid: ssid)
                             }
                         }
                     }
@@ -772,33 +544,107 @@ struct PopoverView: View {
                         }
 
                         if passwordPromptSSID == net.ssid {
-                            HStack(spacing: 6) {
-                                SecureField("Wi-Fi password", text: $passwordInput)
-                                    .textFieldStyle(.plain)
-                                    .font(.system(size: 11))
-                                    .padding(.horizontal, 8)
-                                    .frame(height: 27)
-                                    .background(Color.black.opacity(0.48))
-                                    .clipShape(RoundedRectangle(cornerRadius: 6.5, style: .continuous))
-                                    .overlay(RoundedRectangle(cornerRadius: 6.5, style: .continuous).stroke(Color.white.opacity(0.18), lineWidth: 1))
-                                    .onSubmit { submitPasswordConnect(ssid: net.ssid) }
-
-                                Button("Join") { submitPasswordConnect(ssid: net.ssid) }
-                                    .font(.system(size: 9.6, weight: .semibold))
-                                    .foregroundColor(.black)
-                                    .padding(.horizontal, 11)
-                                    .frame(height: 27)
-                                    .background(Color.white)
-                                    .clipShape(RoundedRectangle(cornerRadius: 6.5, style: .continuous))
-                                    .buttonStyle(.plain)
-                            }
-                            .padding(.horizontal, 4)
+                            inlinePasswordField(ssid: net.ssid)
                         }
                     }
                 }
             }
         }
         .frame(maxHeight: maxHeight)
+    }
+
+    private func inlinePasswordField(ssid: String) -> some View {
+        HStack(spacing: 5.5) {
+            SecureField("Wi-Fi password", text: $passwordInput)
+                .textFieldStyle(.plain)
+                .font(.system(size: 11))
+                .padding(.horizontal, 8)
+                .frame(height: 27)
+                .background(Color.black.opacity(0.48))
+                .clipShape(RoundedRectangle(cornerRadius: 6.5, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 6.5, style: .continuous).stroke(Color.white.opacity(0.18), lineWidth: 1))
+                .onSubmit { submitPasswordConnect(ssid: ssid) }
+
+            Button("Join") { submitPasswordConnect(ssid: ssid) }
+                .font(.system(size: 9.6, weight: .semibold))
+                .foregroundColor(.black)
+                .padding(.horizontal, 11)
+                .frame(height: 27)
+                .background(Color.white)
+                .clipShape(RoundedRectangle(cornerRadius: 6.5, style: .continuous))
+                .buttonStyle(.plain)
+
+            Button {
+                passwordPromptSSID = nil
+                passwordInput = ""
+                state.dismissConnectionError()
+                DispatchQueue.main.async { onRequestResize?() }
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 8.8, weight: .semibold))
+                    .foregroundColor(inkDim)
+                    .frame(width: 24, height: 27)
+                    .background(Color.white.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 6.5, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .help("Cancel")
+            .accessibilityLabel("Cancel password entry")
+        }
+        .padding(.horizontal, 4)
+    }
+
+    private func connectionErrorBanner(_ message: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 9.8))
+                .foregroundColor(Color(red: 1.0, green: 0.56, blue: 0.50))
+                .padding(.top, 1.5)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(message)
+                    .font(.system(size: 9.6, weight: .medium))
+                    .foregroundColor(.white.opacity(0.90))
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button {
+                    state.openWiFiSettings()
+                } label: {
+                    Text("Open macOS Wi-Fi ↗")
+                        .font(.system(size: 9.0, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.86))
+                        .padding(.horizontal, 8)
+                        .frame(height: 21)
+                        .background(Color.white.opacity(0.09))
+                        .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+            }
+
+            Spacer(minLength: 4)
+
+            Button {
+                passwordPromptSSID = nil
+                state.dismissConnectionError()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 8.5, weight: .semibold))
+                    .foregroundColor(inkDim)
+                    .frame(width: 20, height: 20)
+                    .background(Color.white.opacity(0.07))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .help("Dismiss")
+            .accessibilityLabel("Dismiss Wi-Fi error")
+        }
+        .padding(8.5)
+        .background(Color(red: 1.0, green: 0.44, blue: 0.40).opacity(0.11))
+        .clipShape(RoundedRectangle(cornerRadius: 8.5, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8.5, style: .continuous)
+                .stroke(Color(red: 1.0, green: 0.44, blue: 0.40).opacity(0.28), lineWidth: 1)
+        )
     }
 
     private func cardRimOverlay(cornerRadius: CGFloat) -> some View {
@@ -875,7 +721,7 @@ struct PopoverView: View {
                     Button(state.wifi.powerOn ? "Choose Wi-Fi" : "Turn Wi-Fi On") {
                         if state.wifi.powerOn {
                             state.selectTab(.networks)
-                            Task { await state.scanNearbyNetworks() }
+                            Task { await state.scanNearbyNetworks(force: true) }
                         } else {
                             state.toggleWiFiPower()
                         }
@@ -1686,7 +1532,7 @@ struct PopoverView: View {
                     .foregroundColor(inkSoft)
                 Spacer()
                 Button {
-                    Task { await state.scanNearbyNetworks() }
+                    Task { await state.scanNearbyNetworks(force: true) }
                 } label: {
                     HStack(spacing: 4) {
                         if state.isScanningNetworks {
@@ -1715,9 +1561,9 @@ struct PopoverView: View {
                 }
                 .padding(.vertical, 6)
             } else if !state.nearbyNetworks.isEmpty {
-                nearbyNetworksList(maxHeight: 165, limit: 12)
+                nearbyNetworksList(maxHeight: state.isDisconnected ? 225 : 175, limit: 16)
             } else if !state.knownSSIDs.isEmpty {
-                savedNetworksSection(maxHeight: 145)
+                savedNetworksSection(maxHeight: 155)
             } else {
                 Text(state.isScanningNetworks ? "Looking for nearby Wi-Fi networks…" : "No named networks visible yet — tap Refresh or Allow Location above.")
                     .font(.system(size: 10))
@@ -1726,9 +1572,7 @@ struct PopoverView: View {
             }
 
             if let err = state.connectionError {
-                Text(err)
-                    .font(.system(size: 9.5))
-                    .foregroundColor(Color(red: 1.0, green: 0.55, blue: 0.52))
+                connectionErrorBanner(err)
             }
 
             if !state.vpns.isEmpty {
@@ -1763,6 +1607,14 @@ struct PopoverView: View {
                     }
                 }
             }
+
+            HStack {
+                Button("MACOS WI-FI & HOTSPOTS ↗") { state.openWiFiSettings() }
+                    .buttonStyle(QuietFooterLinkStyle())
+                    .help("Open macOS Wi-Fi Settings (for Instant Hotspot or enterprise networks)")
+                Spacer()
+            }
+            .padding(.top, 2)
         }
     }
 
@@ -1983,11 +1835,11 @@ struct PopoverView: View {
             passwordPromptSSID = nil
             Task { await state.connectToNetwork(ssid: net.ssid, password: nil) }
         } else if state.knownSSIDs.contains(net.ssid) && passwordPromptSSID != net.ssid {
-            // Try saved macOS Keychain credentials first; drop down password field if auth fails
+            // Try macOS Keychain auto-join first; drop down password field only if credentials are needed
             passwordPromptSSID = nil
             Task {
-                let ok = await state.connectToNetwork(ssid: net.ssid, password: nil)
-                if !ok {
+                let outcome = await state.connectToNetwork(ssid: net.ssid, password: nil)
+                if outcome == .needsPassword {
                     passwordInput = ""
                     passwordPromptSSID = net.ssid
                     DispatchQueue.main.async { onRequestResize?() }
@@ -1995,7 +1847,10 @@ struct PopoverView: View {
             }
         } else if passwordPromptSSID == net.ssid {
             passwordPromptSSID = nil
+            state.dismissConnectionError()
+            DispatchQueue.main.async { onRequestResize?() }
         } else {
+            state.dismissConnectionError()
             passwordInput = ""
             passwordPromptSSID = net.ssid
             DispatchQueue.main.async { onRequestResize?() }

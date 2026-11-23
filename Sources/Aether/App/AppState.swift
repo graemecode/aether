@@ -91,7 +91,6 @@ final class AppState: ObservableObject {
     @Published var locationServicesEnabled = true
     @Published var isRequestingLocation = false
     @Published var didAttemptLocationPrompt = false
-    @Published var showSettingsWhileDisconnected = false
     @Published var activeTab: PanelTab = .speed
     @Published var stageMode: StageMode = .flux {
         didSet { store.stageMode = stageMode }
@@ -148,6 +147,13 @@ final class AppState: ObservableObject {
     private var fastTickCount = 0
     private var internalThroughputRing: [ThroughputSample] = []
     private var latestWiFiCache = WiFiSnapshot()
+    private var lastScanDate: Date?
+    private let scanFreshnessInterval: TimeInterval = 12.0
+
+    var isScanStale: Bool {
+        guard let lastScanDate else { return true }
+        return Date().timeIntervalSince(lastScanDate) >= scanFreshnessInterval
+    }
 
     var isSandboxed: Bool {
         #if APP_STORE
@@ -245,9 +251,14 @@ final class AppState: ObservableObject {
         counters.resetBaseline()
         lastNettopRows = nil
         lastNettopDate = nil
+        lastScanDate = nil
         Task {
             try? await Task.sleep(for: .milliseconds(800))
+            self.tickFast(forceWiFiRead: true)
             await self.refreshEnvironment(includeHops: true)
+            if self.isAnySurfaceOpen {
+                await self.scanNearbyNetworks(force: true)
+            }
         }
     }
 
@@ -298,8 +309,13 @@ final class AppState: ObservableObject {
             snap.isPrivateMAC = differsFromFactory || localBit
         }
 
+        let wasConnected = latestWiFiCache.isConnected
         detectRadioEvents(newWifi: snap)
         latestWiFiCache = snap
+        if snap.isConnected && !wasConnected {
+            connectionError = nil
+            lastScanDate = nil
+        }
 
         internalThroughputRing.append(counterSample.sample)
         if internalThroughputRing.count > maxHistoryCount {
@@ -336,10 +352,10 @@ final class AppState: ObservableObject {
 
     private func updateInteractivePolling() {
         if !isPopoverOpen {
-            // Clear sensitive Wi-Fi QR payload whenever popover closes
+            // Clear sensitive Wi-Fi QR payload and stale join errors whenever popover closes
             qrSharePayload = nil
             qrShareSSID = nil
-            showSettingsWhileDisconnected = false
+            connectionError = nil
         }
 
         if isAnySurfaceOpen {
@@ -348,18 +364,29 @@ final class AppState: ObservableObject {
             // Sync latest ring buffer & Wi-Fi snapshot immediately on open
             self.throughputHistory = internalThroughputRing
             tickFast(forceWiFiRead: true)
+
+            // When disconnected, focus the Wi-Fi tab automatically while keeping all 4 tabs & hero accessible
+            if isPopoverOpen && isDisconnected && activeTab != .networks {
+                activeTab = .networks
+            }
+
+            // Seed immediately from macOS's <1ms cached scan if list is empty
+            if nearbyNetworks.isEmpty {
+                seedNearbyNetworksFromCache()
+            }
+
             if interactiveTimer == nil {
                 lastNettopRows = nil
                 lastNettopDate = nil
                 interactiveTickCount = 0
 
-                let disconnectedOnOpen = isDisconnected
+                let shouldScanNow = isDisconnected || activeTab == .networks || rawScanBSSIDs.isEmpty || isScanStale
                 Task {
                     await sampleProcessBandwidth()
                 }
                 Task {
                     await refreshEnvironment(includeHops: true)
-                    if disconnectedOnOpen || rawScanBSSIDs.isEmpty {
+                    if shouldScanNow {
                         await scanNearbyNetworks()
                     }
                 }
@@ -374,7 +401,7 @@ final class AppState: ObservableObject {
                         }
                     }
                 }
-            } else if isDisconnected {
+            } else if isDisconnected || activeTab == .networks || isScanStale {
                 Task { await scanNearbyNetworks() }
             }
         } else {
@@ -750,15 +777,41 @@ final class AppState: ObservableObject {
 
     // MARK: - User Actions
 
+    enum WiFiConnectOutcome: Equatable {
+        case connected
+        case needsPassword
+        case failed
+    }
+
     func selectTab(_ tab: PanelTab) {
         performHaptic()
         activeTab = tab
-        if tab == .networks && nearbyNetworks.isEmpty {
+        if tab == .networks && (nearbyNetworks.isEmpty || isScanStale) {
+            if nearbyNetworks.isEmpty {
+                seedNearbyNetworksFromCache()
+            }
             Task { await scanNearbyNetworks() }
         }
         DispatchQueue.main.async { [weak self] in
             self?.onRequestPanelResize?()
         }
+    }
+
+    private func seedNearbyNetworksFromCache() {
+        let cached = wifiController.cachedScanDetailed()
+        guard !cached.uniqueNetworks.isEmpty || !cached.allBSSIDs.isEmpty else { return }
+        if self.nearbyNetworks.isEmpty {
+            self.nearbyNetworks = cached.uniqueNetworks
+        }
+        if self.rawScanBSSIDs.isEmpty {
+            self.rawScanBSSIDs = cached.allBSSIDs
+            self.channelAnalysis = ChannelAnalyzer.analyze(current: wifi, rawBSSIDs: cached.allBSSIDs)
+        }
+    }
+
+    func dismissConnectionError() {
+        connectionError = nil
+        onRequestPanelResize?()
     }
 
     func cycleStageMode() {
@@ -782,15 +835,23 @@ final class AppState: ObservableObject {
         }
     }
 
-    func scanNearbyNetworks() async {
+    func scanNearbyNetworks(force: Bool = false) async {
         guard !isScanningNetworks else { return }
+        if !force && !isScanStale && !nearbyNetworks.isEmpty {
+            return
+        }
         isScanningNetworks = true
+        if force {
+            connectionError = nil
+        }
         defer { isScanningNetworks = false }
         self.knownSSIDs = wifiController.knownNetworkSSIDs()
-        let res = await wifiController.scanDetailed()
-        self.nearbyNetworks = res.uniqueNetworks
-        self.rawScanBSSIDs = res.allBSSIDs
-        self.channelAnalysis = ChannelAnalyzer.analyze(current: wifi, rawBSSIDs: res.allBSSIDs)
+        if let res = await wifiController.scanDetailedFresh() {
+            self.nearbyNetworks = res.uniqueNetworks
+            self.rawScanBSSIDs = res.allBSSIDs
+            self.lastScanDate = Date()
+            self.channelAnalysis = ChannelAnalyzer.analyze(current: wifi, rawBSSIDs: res.allBSSIDs)
+        }
     }
 
     func roamToBetterAP() {
@@ -814,24 +875,44 @@ final class AppState: ObservableObject {
     }
 
     @discardableResult
-    func connectToNetwork(ssid: String, password: String?) async -> Bool {
+    func connectToNetwork(ssid: String, password: String?) async -> WiFiConnectOutcome {
         connectingSSID = ssid
         connectionError = nil
         performHaptic()
+        let isKnown = knownSSIDs.contains(ssid)
         do {
-            try await wifiController.connect(ssid: ssid, password: password)
-            showBanner("Connected to \(ssid)")
+            try await wifiController.connect(ssid: ssid, password: password, isKnown: isKnown)
             connectingSSID = nil
-            showSettingsWhileDisconnected = false
-            try? await Task.sleep(for: .milliseconds(600))
+            connectionError = nil
+            knownSSIDs = wifiController.knownNetworkSSIDs()
+            showBanner("Connected to \(ssid)")
+            tickFast(forceWiFiRead: true)
+            try? await Task.sleep(for: .milliseconds(500))
+            tickFast(forceWiFiRead: true)
             await refreshEnvironment(includeHops: true)
-            await scanNearbyNetworks()
-            return true
+            await scanNearbyNetworks(force: true)
+            return .connected
         } catch {
             connectingSSID = nil
-            connectionError = error.localizedDescription
+            // Re-check live interface in case macOS connected anyway while our request raced with auto-join
+            tickFast(forceWiFiRead: true)
+            if wifi.isConnected, wifi.ssid == ssid {
+                connectionError = nil
+                showBanner("Connected to \(ssid)")
+                await refreshEnvironment(includeHops: true)
+                await scanNearbyNetworks(force: true)
+                return .connected
+            }
+            let joinErr = (error as? WiFiController.WiFiJoinError) ?? WiFiController.classifyJoinError(
+                error,
+                ssid: ssid,
+                hadPassword: password?.isEmpty == false,
+                isKnown: isKnown,
+                isSandboxed: isSandboxed
+            )
+            connectionError = joinErr.localizedDescription
             showBanner("Could not join \(ssid)")
-            return false
+            return joinErr.needsPasswordPrompt ? .needsPassword : .failed
         }
     }
 
@@ -1153,6 +1234,9 @@ final class AppState: ObservableObject {
     }
 
     var heroTitle: String {
+        if let joining = connectingSSID, isDisconnected {
+            return "Joining \(joining)…"
+        }
         if let ssid = wifi.ssid, !ssid.isEmpty {
             return ssid
         }
@@ -1174,6 +1258,9 @@ final class AppState: ObservableObject {
     }
 
     var heroSubtitle: String {
+        if connectingSSID != nil && isDisconnected {
+            return "CONNECTING TO WI-FI"
+        }
         if !isProMode {
             return HumanSummary.humanSubtitle(
                 wifi: wifi,

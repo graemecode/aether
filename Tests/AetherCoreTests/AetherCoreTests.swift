@@ -889,4 +889,108 @@ final class AetherCoreTests: XCTestCase {
         XCTAssertTrue(LocalNetworkAdvisor.containsContradiction(text: "You should turn on a VPN on public Wi-Fi.", input: input))
         XCTAssertFalse(LocalNetworkAdvisor.containsContradiction(text: "Pause Antigravity uploads while on satellite Wi-Fi.", input: input))
     }
+
+    func testWiFiJoinErrorTranslationNeverLeaksTmpErr() {
+        let tmpErr = NSError(
+            domain: "com.apple.wifi.apple80211API.error",
+            code: -3900,
+            userInfo: [NSLocalizedDescriptionKey: "The operation couldn't be completed. tmpErr"]
+        )
+
+        let directSaved = WiFiController.classifyJoinError(
+            tmpErr,
+            ssid: "iPhone (38)",
+            hadPassword: false,
+            isKnown: true,
+            isSandboxed: false
+        )
+        XCTAssertEqual(directSaved, .passwordRequired(ssid: "iPhone (38)", isKnown: true, isSandboxed: false))
+        XCTAssertTrue(directSaved.needsPasswordPrompt)
+        XCTAssertFalse((directSaved.errorDescription ?? "").contains("tmpErr"))
+        XCTAssertTrue((directSaved.errorDescription ?? "").contains("iPhone (38)"))
+
+        let sandboxSaved = WiFiController.classifyJoinError(
+            tmpErr,
+            ssid: "iPhone (38)",
+            hadPassword: false,
+            isKnown: true,
+            isSandboxed: true
+        )
+        XCTAssertEqual(sandboxSaved, .passwordRequired(ssid: "iPhone (38)", isKnown: true, isSandboxed: true))
+        XCTAssertTrue((sandboxSaved.errorDescription ?? "").contains("sandbox"))
+
+        let wrongPass = WiFiController.classifyJoinError(
+            tmpErr,
+            ssid: "iPhone (38)",
+            hadPassword: true,
+            isKnown: true,
+            isSandboxed: false
+        )
+        XCTAssertEqual(wrongPass, .authenticationFailed(ssid: "iPhone (38)"))
+        XCTAssertTrue(wrongPass.needsPasswordPrompt)
+
+        let timeoutErr = NSError(domain: "com.apple.wifi.apple80211API.error", code: -3905, userInfo: nil)
+        let timedOut = WiFiController.classifyJoinError(
+            timeoutErr,
+            ssid: "iPhone (38)",
+            hadPassword: false,
+            isKnown: true,
+            isSandboxed: false
+        )
+        XCTAssertEqual(timedOut, .timedOut(ssid: "iPhone (38)"))
+        XCTAssertFalse(timedOut.needsPasswordPrompt)
+    }
+
+    func testNetworkSetupJoinFailureParsing() {
+        // Clean exit 0 with no output means success
+        XCTAssertNil(WiFiController.parseNetworkSetupJoinFailure(
+            output: "",
+            exitCode: 0,
+            ssid: "iPhone (38)",
+            hadPassword: false,
+            isKnown: true
+        ))
+
+        // networksetup often returns exit code 0 while printing "Could not find network"
+        let notFound = WiFiController.parseNetworkSetupJoinFailure(
+            output: "Could not find network iPhone (38).\n",
+            exitCode: 0,
+            ssid: "iPhone (38)",
+            hadPassword: false,
+            isKnown: true
+        )
+        XCTAssertEqual(notFound, .notInRange(ssid: "iPhone (38)"))
+        XCTAssertFalse(notFound?.needsPasswordPrompt ?? true)
+
+        // Failed join without password should prompt for password cleanly
+        let needsPw = WiFiController.parseNetworkSetupJoinFailure(
+            output: "Failed to join network iPhone (38).\nError: -3900 The operation couldn't be completed.",
+            exitCode: 0,
+            ssid: "iPhone (38)",
+            hadPassword: false,
+            isKnown: true
+        )
+        XCTAssertEqual(needsPw, .passwordRequired(ssid: "iPhone (38)", isKnown: true, isSandboxed: false))
+        XCTAssertTrue(needsPw?.needsPasswordPrompt ?? false)
+
+        // Failed join WITH password -> wrong password
+        let badPw = WiFiController.parseNetworkSetupJoinFailure(
+            output: "Failed to join network Studio 5G.\nError: -3924",
+            exitCode: 1,
+            ssid: "Studio 5G",
+            hadPassword: true,
+            isKnown: false
+        )
+        XCTAssertEqual(badPw, .authenticationFailed(ssid: "Studio 5G"))
+
+        // Timeout (-3905) takes precedence over "Failed to join"
+        let timeout = WiFiController.parseNetworkSetupJoinFailure(
+            output: "Failed to join network iPhone (38).\nError: -3905 The operation couldn't be completed.",
+            exitCode: 0,
+            ssid: "iPhone (38)",
+            hadPassword: false,
+            isKnown: true
+        )
+        XCTAssertEqual(timeout, .timedOut(ssid: "iPhone (38)"))
+    }
 }

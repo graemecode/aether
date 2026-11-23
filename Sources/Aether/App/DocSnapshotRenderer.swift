@@ -303,7 +303,7 @@ enum DocSnapshotRenderer {
         s.route = RouteInfo()
         s.trustAudit = TrustAudit(level: .offline, score: 0, headline: "Not connected")
         s.currentThroughput = ThroughputSample(downloadBytesPerSec: 0, uploadBytesPerSec: 0)
-        s.showSettingsWhileDisconnected = false
+        s.activeTab = .networks
         s.knownSSIDs = ["Studio 5G", "Cedar-Mesh", "iPhone Hotspot"]
         s.nearbyNetworks = [
             NearbyNetwork(ssid: "Unitedwifi.com", bssid: "00:1e:13:94:22:10", rssi: -50, channel: 44, channelWidthMHz: 40, band: .band5, security: .open),
