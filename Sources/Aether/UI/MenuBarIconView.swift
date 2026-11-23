@@ -18,7 +18,7 @@ final class MenuBarIconView: NSView {
     private var showSpeedText: Bool = false
 
     static let iconOnlyWidth: CGFloat = 22
-    static let iconWithSpeedWidth: CGFloat = 72
+    static let iconWithSpeedWidth: CGFloat = 50
 
     var preferredWidth: CGFloat {
         showSpeedText ? Self.iconWithSpeedWidth : Self.iconOnlyWidth
@@ -52,7 +52,7 @@ final class MenuBarIconView: NSView {
         self.downloadRate = throughput.downloadBytesPerSec
         self.uploadRate = throughput.uploadBytesPerSec
 
-        let activeTraffic = (downloadRate + uploadRate) >= 24_000 // >= ~24 KB/s
+        let activeTraffic = (downloadRate + uploadRate) >= 250_000 // only expand in Auto mode on real transfers (>= ~250 KB/s)
         switch mode {
         case .iconOnly:
             self.showSpeedText = false
@@ -73,8 +73,8 @@ final class MenuBarIconView: NSView {
         let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
         let inkGray: CGFloat = isDark ? 1.0 : 0.0
 
-        // Center of the 14pt-wide Wi-Fi emblem (left-anchored when showing speed, centered when icon-only)
-        let glyphCenterX: CGFloat = showSpeedText ? 9.5 : bounds.width * 0.5
+        // Center of the 13.4pt-wide Wi-Fi emblem (left-anchored when showing speed, centered when icon-only)
+        let glyphCenterX: CGFloat = showSpeedText ? 8.5 : bounds.width * 0.5
         let midY: CGFloat = h * 0.5
 
         if isWired {
@@ -84,7 +84,7 @@ final class MenuBarIconView: NSView {
         }
 
         if showSpeedText {
-            drawTightSpeedStack(ctx: ctx, startX: 19.5, midY: midY, inkGray: inkGray)
+            drawTightSpeedStack(ctx: ctx, startX: 18.0, midY: midY, inkGray: inkGray)
         }
     }
 
@@ -151,7 +151,7 @@ final class MenuBarIconView: NSView {
         ctx.fillEllipse(in: CGRect(x: cx - dotR, y: midY - dotR, width: dotR * 2, height: dotR * 2))
     }
 
-    // MARK: - Airy Right-Aligned Speed Stack (Custom Micro Chevrons + Tabular Digits + Explicit Units)
+    // MARK: - Compact Right-Aligned Speed Stack (50pt Total — Matches Native Menu Bar Density)
 
     private func drawTightSpeedStack(ctx: CGContext, startX: CGFloat, midY: CGFloat, inkGray: CGFloat) {
         let downActive = downloadRate >= 1_024
@@ -161,20 +161,20 @@ final class MenuBarIconView: NSView {
         let downAlpha: CGFloat = downActive ? (downDominant ? 0.98 : 0.78) : 0.42
         let upAlpha: CGFloat = upActive ? (!downDominant ? 0.98 : 0.72) : 0.38
 
-        // Top row (download): crisp micro ▾ + right-aligned tabular rate
-        drawMicroArrow(ctx: ctx, cx: startX + 2.5, cy: midY + 4.0, pointingUp: false, gray: inkGray, alpha: downAlpha)
-        // Bottom row (upload): crisp micro ▴ + right-aligned tabular rate
-        drawMicroArrow(ctx: ctx, cx: startX + 2.5, cy: midY - 4.0, pointingUp: true, gray: inkGray, alpha: upAlpha)
+        // Top row (download): micro ▾ + compact right-aligned rate
+        drawMicroArrow(ctx: ctx, cx: startX + 1.8, cy: midY + 4.0, pointingUp: false, gray: inkGray, alpha: downAlpha)
+        // Bottom row (upload): micro ▴ + compact right-aligned rate
+        drawMicroArrow(ctx: ctx, cx: startX + 1.8, cy: midY - 4.0, pointingUp: true, gray: inkGray, alpha: upAlpha)
 
-        let textX = startX + 6.5
-        let textW = max(12, bounds.width - textX - 2.0)
+        let textX = startX + 5.2
+        let textW = max(12, bounds.width - textX - 1.5)
 
         let para = NSMutableParagraphStyle()
         para.alignment = .right
         para.lineBreakMode = .byClipping
 
-        let downFont = NSFont.monospacedDigitSystemFont(ofSize: 8.4, weight: downDominant && downActive ? .semibold : .medium)
-        let upFont = NSFont.monospacedDigitSystemFont(ofSize: 8.4, weight: !downDominant && upActive ? .semibold : .regular)
+        let downFont = NSFont.monospacedDigitSystemFont(ofSize: 8.3, weight: downDominant && downActive ? .semibold : .medium)
+        let upFont = NSFont.monospacedDigitSystemFont(ofSize: 8.3, weight: !downDominant && upActive ? .semibold : .regular)
 
         let downAttrs: [NSAttributedString.Key: Any] = [
             .font: downFont,
@@ -187,8 +187,8 @@ final class MenuBarIconView: NSView {
             .paragraphStyle: para
         ]
 
-        let downStr = ByteRateFormatter.menuBar(downloadRate)
-        let upStr = ByteRateFormatter.menuBar(uploadRate)
+        let downStr = ByteRateFormatter.compact(downloadRate)
+        let upStr = ByteRateFormatter.compact(uploadRate)
 
         let downRect = CGRect(x: textX, y: midY - 0.5, width: textW, height: 10.2)
         let upRect = CGRect(x: textX, y: midY - 8.8, width: textW, height: 10.2)
