@@ -178,6 +178,13 @@ struct AetherStudioView: View {
                     sub: "\(state.awdl.totalPackets) awdl0 pkts",
                     accent: state.awdl.isStealingAirtime ? Color(red: 1.0, green: 0.74, blue: 0.34) : .white
                 )
+                #if APP_STORE
+                physicsMetricCell(
+                    label: "IPv6 · PRIVACY",
+                    value: state.hasGlobalIPv6 ? "Native IPv6" : "IPv4 Only",
+                    sub: state.wifi.isPrivateMAC == true ? "Private Wi-Fi MAC" : "Hardware MAC"
+                )
+                #else
                 Button {
                     withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
                         bottomLeftTab = .connections
@@ -192,6 +199,7 @@ struct AetherStudioView: View {
                 }
                 .buttonStyle(.plain)
                 .help("View active apps and live outbound connections")
+                #endif
             }
 
             // Top Row: RF Channel Spectrum Analyzer (Left) + Multi-Hop Latency/Jitter Timeline (Right)
@@ -373,6 +381,12 @@ struct AetherStudioView: View {
     private var devicesOrConnectionsCard: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
+                #if APP_STORE
+                Text("DEVICES ON THIS WI-FI (\(state.lanDevices.count))")
+                    .font(.system(size: 9.0, weight: .semibold, design: .monospaced))
+                    .foregroundColor(inkSoft)
+                    .tracking(0.6)
+                #else
                 HStack(spacing: 2) {
                     ForEach(BottomLeftTab.allCases) { tab in
                         let on = bottomLeftTab == tab
@@ -401,6 +415,7 @@ struct AetherStudioView: View {
                 .padding(2.5)
                 .background(Color.white.opacity(0.05))
                 .clipShape(Capsule())
+                #endif
 
                 Spacer()
 
@@ -412,11 +427,15 @@ struct AetherStudioView: View {
                     .lineLimit(1)
             }
 
+            #if APP_STORE
+            lanDevicesList
+            #else
             if bottomLeftTab == .lanDevices {
                 lanDevicesList
             } else {
                 appsAndConnectionsList
             }
+            #endif
         }
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

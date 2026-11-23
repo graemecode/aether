@@ -7,7 +7,7 @@ Aether is a native macOS menu bar utility (`LSUIElement = true`) that visualizes
 1. Launch **Aether** — its geometric Wi-Fi icon appears in the top-right macOS menu bar (and opens automatically on first launch).
 2. **Connected state:** Click the menu bar icon to inspect:
    - **Hero Stage:** Tap the visualization or hover to switch between **Flux** (live throughput), **Spectrum** (RF channel overlap), and **Route** (4-hop circuit).
-   - **Tabs:** `SPEED` (activity readiness, live RF insights, and `Run Test` responsiveness check), `PRIVACY` (local network exposure, trust zone, and discovered LAN devices), `WI-FI` (nearby networks and system VPN toggle), and `MORE` (Simple/Pro view, menu bar style, on-demand Public IP lookup, Privacy Policy).
+   - **Tabs:** `Speed` (live Download/Upload, Received/Sent/Peak totals, active network interfaces, activity readiness, and `Run Test` responsiveness check), `Privacy` (local network exposure, trust zone, and discovered LAN devices), `Wi-Fi` (nearby networks and system VPN toggle), and `More` (Simple/Pro view, menu bar style, on-demand Public IP lookup, Privacy Policy).
    - **Studio Window:** Click the top-right expand arrow (or press `⌘E`) to open Aether Studio.
 3. **Disconnected state:** Turn Wi-Fi off or disconnect from a network, then click Aether in the menu bar — the popover focuses directly on the Wi-Fi network picker.
 
