@@ -1,6 +1,6 @@
 # Aether
 
-**Aether** is a native macOS menu bar Wi-Fi instrument built to replace Apple’s default Wi-Fi menu. Zero subscriptions, zero Electron, zero third-party packages — a **2.9 MB** Swift 6 + SwiftUI + AppKit app (`0.0%` idle CPU) that brings live throughput, radio physics, channel spectrum analysis, multi-hop latency/jitter, LAN discovery, and privacy posture into one quiet obsidian panel.
+**Aether** is a native macOS menu bar Wi-Fi instrument built to replace Apple’s default Wi-Fi menu. Zero subscriptions, zero Electron, zero third-party packages — a **3.1 MB** Swift 6 + SwiftUI + AppKit app (`0.0%` idle CPU) that brings live throughput, parent-grouped app bandwidth with real macOS icons, active interfaces, radio physics, channel spectrum analysis, multi-hop latency/jitter, LAN discovery, outbound connections, and privacy posture into one quiet obsidian panel.
 
 **Website & live preview:** [strangechances.com/aether](https://strangechances.com/aether/)
 
@@ -27,12 +27,12 @@ Until now, answering those questions on macOS meant juggling six separate paid u
 | Menu Bar & Speed (`FLUX`) | Public Wi-Fi Privacy (`ROUTE`) |
 | :---: | :---: |
 | ![Menu Bar & Speed](docs/hero-menubar.jpg) | ![Public Wi-Fi Privacy](docs/vis-privacy.jpg) |
-| Live harmonic silk ribbons (`↓ / ↑`), 4-step health chain (`Wi-Fi › Router › Lookup › Internet`), activity readiness (Video Calls, 4K Video, Live & Games), measured RF physics insights, bufferbloat speed test, and active bandwidth hogs. | Plain-English *"Who Can See You Here?"* breakdown (Strangers Nearby, Wi-Fi Owner & ISP, Others on This Wi-Fi), curved Bézier 4-hop route with frosted VPN shield, auto-`PUBLIC` trust zone detection on open or crowded Wi-Fi, and 1-click DNS switching. |
+| Live harmonic silk ribbons (`↓ / ↑`), fixed-width `28pt` menu bar icon with color-coded `▾ / ▴` speed arrows (zero bar shifting), 4-step health chain, `Download / Upload` + `Received / Sent / Peak`, active `Wi-Fi` & `VPN` interfaces, parent-grouped `Processes` with real macOS app icons, activity readiness, and bufferbloat speed test. | Plain-English *"Who Can See You Here?"* breakdown (Strangers Nearby, Wi-Fi Owner & ISP, Others on This Wi-Fi), curved Bézier 4-hop route with frosted VPN shield, auto-`PUBLIC` trust zone detection on open or crowded Wi-Fi, and 1-click DNS switching. |
 
 | RF Channel Spectrum & Roaming (`SPECTRUM`) | Aether Studio Workstation (`⌘E`) |
 | :---: | :---: |
 | ![RF Channel Spectrum](docs/vis-spectrum.jpg) | ![Aether Studio](docs/vis-studio.jpg) |
-| Dual-pass Gaussian channel overlap across 2.4 / 5 / 6 GHz, cleaner-channel recommendations, sticky-client 5 GHz roaming nudges, Touch ID Wi-Fi Share QR code, and 1-click VPN toggles. | Expandable obsidian workstation combining a 6-cell RF physics & socket X-Ray bar (nanowatts, linear SNR multiplier, path-loss distance, half-duplex TCP ceiling, `awdl0` AirDrop radio, native IPv6), full channel spectrum, interactive hover-crosshair latency/jitter/loss timeline, OUI + mDNS LAN device table, and automatic connection event log. |
+| Dual-pass Gaussian channel overlap across 2.4 / 5 / 6 GHz, cleaner-channel recommendations, sticky-client 5 GHz roaming nudges, Touch ID Wi-Fi Share QR code, and 1-click VPN toggles. | Expandable obsidian workstation combining a 6-cell RF physics & socket X-Ray bar (nanowatts, linear SNR multiplier, path-loss distance, half-duplex TCP ceiling, `awdl0` AirDrop radio, native IPv6), full channel spectrum, interactive hover-crosshair latency/jitter/loss timeline, OUI + mDNS LAN devices, live per-app outbound connections, and automatic event log. |
 
 <p align="center">
   <img src="docs/vis-disconnected.jpg" alt="Aether Disconnected-First Wi-Fi Picker" width="82%">
@@ -68,7 +68,8 @@ Aether is pure **Swift 6** with **zero external dependencies**, split into a det
 ```
 Sources/
 ├── AetherCore/                     # Pure Swift 6 telemetry, RF physics & audit engine (zero UI)
-│   ├── InterfaceCounters.swift     # Zero-subprocess POSIX getifaddrs: throughput, real AF_LINK MAC, awdl0, IPv6
+│   ├── InterfaceCounters.swift     # Zero-subprocess getifaddrs: live bytes, Peak, active interfaces, MAC, awdl0, IPv6
+│   ├── AppAttribution.swift        # Pure-Darwin proc_pidpath parent `.app` rollup & service port catalog
 │   ├── NativeNetworkTelemetry.swift# In-process SCDynamicStore, SCNetworkConnection, sysctl ARP, SOCK_DGRAM ICMP
 │   ├── WiFiController.swift        # CoreWLAN + CoreLocation radio snapshots, scans, roaming & association
 │   ├── ChannelAnalyzer.swift       # 2.4/5/6 GHz overlap scoring, channel recommendation & sticky-client detector
@@ -78,18 +79,18 @@ Sources/
 │   ├── TrustStore.swift            # Per-network trust zones (auto-PUBLIC on open/crowded Wi-Fi) & gateway pinning
 │   ├── HumanSummary.swift          # Plain-English activity readiness, 3-actor privacy story & live RF insights
 │   ├── OUIVendorLookup.swift       # Compact offline IEEE OUI vendor lookup
-│   ├── NetworkProbes.swift         # Async timeout-bounded probes, captive portal check & direct-build power tools
+│   ├── NetworkProbes.swift         # Async timeout-bounded probes, 1s nettop delta, captive portal & direct tools
 │   └── MenuBarPositioner.swift     # Notch-safe floating panel geometry
 └── Aether/                         # Native AppKit + SwiftUI menu bar & Studio app
     ├── App/
-    │   ├── AppDelegate.swift       # Borderless notch-safe NSPanel, global shortcuts & right-click menu
+    │   ├── AppDelegate.swift       # Fixed-width 396pt notch-safe NSPanel, global shortcuts & right-click menu
     │   └── AppState.swift          # Reactive state engine (0.0% idle CPU when closed)
     └── UI/
-        ├── MenuBarIconView.swift   # Compact 22pt / 52pt geometric 3-arc emblem + trust dot + speed stack
+        ├── MenuBarIconView.swift   # Fixed-width 22pt (Icon) / 28pt (Color Arrows) / 50pt (Speed) emblem
+        ├── AppIconCache.swift      # Cached macOS .app icons & monochrome daemon/CLI badges
         ├── InstrumentStageView.swift# FLUX ribbons, Gaussian SPECTRUM & curved Bézier ROUTE circuit
-        ├── AetherGlyphs.swift      # Four circular geometric mode emblems
-        ├── PopoverView.swift       # Connected instrument & disconnected-first Wi-Fi picker
-        ├── StudioWindowController.swift # Resizable Aether Studio workstation (⌘E)
+        ├── PopoverView.swift       # Single-shell obsidian instrument & disconnected-first Wi-Fi picker
+        ├── StudioWindowController.swift # Resizable Aether Studio workstation (⌘E) with LAN & Connections views
         └── QRCodeView.swift        # Scannable Wi-Fi Share QR card
 ```
 
