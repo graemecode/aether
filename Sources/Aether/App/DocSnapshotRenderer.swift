@@ -301,6 +301,7 @@ enum DocSnapshotRenderer {
     private static func applyDisconnectedFixture(_ s: AppState) {
         s.wifi = WiFiSnapshot(interfaceName: "en0", powerOn: true, isConnected: false)
         s.route = RouteInfo()
+        s.vpns = []
         s.trustAudit = TrustAudit(level: .offline, score: 0, headline: "Not connected")
         s.currentThroughput = ThroughputSample(downloadBytesPerSec: 0, uploadBytesPerSec: 0)
         s.activeTab = .networks

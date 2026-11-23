@@ -440,7 +440,7 @@ public enum HumanSummary {
             return "WIRED ETHERNET · DIRECT LINK"
         }
         guard wifi.isConnected else {
-            return wifi.powerOn ? "NOT CONNECTED" : "WI-FI TURNED OFF"
+            return wifi.powerOn ? "READY · SELECT A NETWORK BELOW" : "RADIO OFF · CLICK POWER TO ENABLE"
         }
         var parts: [String] = [humanSignalLabel(wifi: wifi, isWired: false).uppercased()]
         if let room = rfPhysics.estimatedRangeLabel.components(separatedBy: " · ").last, !room.isEmpty, room != "—" {

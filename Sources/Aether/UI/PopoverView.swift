@@ -551,6 +551,17 @@ struct PopoverView: View {
             }
         }
         .frame(maxHeight: maxHeight)
+        .mask(
+            VStack(spacing: 0) {
+                Color.black
+                LinearGradient(
+                    colors: [.black, .black.opacity(state.nearbyNetworks.count > 5 ? 0.15 : 1.0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 16)
+            }
+        )
     }
 
     private func inlinePasswordField(ssid: String) -> some View {
@@ -828,7 +839,7 @@ struct PopoverView: View {
                         .buttonStyle(QuietFooterLinkStyle())
                     }
 
-                    // Fixed 110pt slot (5 rows) so the popover NEVER shifts height while processes load or fluctuate
+                    // Fixed 86pt slot (4 rows) so the popover NEVER shifts height while processes load or fluctuate
                     ZStack(alignment: .topLeading) {
                         if activeApps.isEmpty {
                             Text(state.hasSampledProcesses ? "No active app transfers right now" : "Measuring active apps…")
@@ -837,8 +848,8 @@ struct PopoverView: View {
                                 .padding(.top, 2)
                         } else {
                             let maxRate = max(activeApps.first?.totalBytesPerSec ?? 1, 1)
-                            VStack(spacing: 6) {
-                                ForEach(activeApps.prefix(5)) { proc in
+                            VStack(spacing: 5.5) {
+                                ForEach(activeApps.prefix(4)) { proc in
                                     let displayName = proc.appBundlePath != nil
                                         ? proc.name
                                         : (state.isProMode ? proc.name : HumanSummary.friendlyProcessName(proc.name))
@@ -885,7 +896,7 @@ struct PopoverView: View {
                             }
                         }
                     }
-                    .frame(maxWidth: .infinity, minHeight: 110, maxHeight: 110, alignment: .topLeading)
+                    .frame(maxWidth: .infinity, minHeight: 86, maxHeight: 86, alignment: .topLeading)
                 }
             }
             #endif
@@ -914,9 +925,9 @@ struct PopoverView: View {
                     .padding(.horizontal, 8.5)
                     .padding(.vertical, 6)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.white.opacity(0.03))
+                    .background(Color.white.opacity(0.028))
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(accent.opacity(0.18), lineWidth: 0.9))
+                    .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(accent.opacity(0.14), lineWidth: 0.85))
                     .help(item.detail)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(item.activity)
@@ -924,20 +935,14 @@ struct PopoverView: View {
                 }
             }
 
-            // 5. Sleek 1-Row Speed & Call Test Strip (expands cleanly only while testing or showing results)
+            // 5. Sleek Speed & Call Test Strip (full-width verdict caption — zero truncation!)
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(state.isProMode ? "RESPONSIVENESS & SPEED" : "Speed & Call Test")
-                            .font(state.isProMode
-                                  ? .system(size: 8.6, weight: .semibold, design: .monospaced)
-                                  : .system(size: 10.6, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.92))
-                        Text(state.qualityResult?.plainEnglishVerdict ?? "Measure real download, upload & bufferbloat")
-                            .font(.system(size: 9.2))
-                            .foregroundColor(inkDim)
-                            .lineLimit(1)
-                    }
+                    Text(state.isProMode ? "RESPONSIVENESS & SPEED" : "Speed & Call Test")
+                        .font(state.isProMode
+                              ? .system(size: 8.6, weight: .semibold, design: .monospaced)
+                              : .system(size: 10.6, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.92))
                     Spacer(minLength: 4)
                     HStack(spacing: 5.5) {
                         Button {
@@ -955,7 +960,7 @@ struct PopoverView: View {
                             }
                             .foregroundColor(state.aiDiagnosis != nil ? Color(red: 0.72, green: 0.90, blue: 1.0) : .white.opacity(0.88))
                             .padding(.horizontal, 9.5)
-                            .frame(height: 25)
+                            .frame(height: 24)
                             .background(Color.white.opacity(state.aiDiagnosis != nil ? 0.13 : 0.06))
                             .clipShape(Capsule())
                             .overlay(
@@ -984,7 +989,7 @@ struct PopoverView: View {
                             }
                             .foregroundColor(.white.opacity(0.95))
                             .padding(.horizontal, 10.5)
-                            .frame(height: 25)
+                            .frame(height: 24)
                             .background(Color.white.opacity(state.isRunningQualityTest ? 0.08 : 0.11))
                             .clipShape(Capsule())
                             .overlay(Capsule().stroke(Color.white.opacity(0.22), lineWidth: 0.85))
@@ -993,6 +998,13 @@ struct PopoverView: View {
                         .disabled(state.isRunningQualityTest)
                         .help("Run Apple networkQuality speed & responsiveness test (Space)")
                     }
+                }
+
+                if let verdict = state.qualityResult?.plainEnglishVerdict {
+                    Text(verdict)
+                        .font(.system(size: 9.4))
+                        .foregroundColor(inkDim)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 if state.isGeneratingBrief {
@@ -1219,30 +1231,32 @@ struct PopoverView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
 
-            // 2. Where Are You? (Sliding spring pill)
-            VStack(alignment: .leading, spacing: 4.5) {
-                Text("WHERE ARE YOU?")
-                    .font(.system(size: 7.6, weight: .semibold, design: .monospaced))
+            // 2. Where Are You? (Refined frosted-glass sliding pill matching top tab bar)
+            VStack(alignment: .leading, spacing: 5) {
+                Text(state.isProMode ? "TRUST ZONE" : "Where are you?")
+                    .font(state.isProMode
+                          ? .system(size: 8.0, weight: .semibold, design: .monospaced)
+                          : .system(size: 9.8, weight: .semibold))
                     .foregroundColor(inkDim)
-                    .tracking(0.5)
                 HStack(spacing: 3) {
                     ForEach(TrustZone.allCases) { zone in
                         let on = state.currentTrustZone == zone
-                        let title = zone == .untrusted ? "PUBLIC" : zone.label
+                        let title = zone == .untrusted ? "Public" : zone.label.capitalized
                         Button {
                             withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
                                 state.setTrustZone(zone)
                             }
                         } label: {
-                            Text(title)
-                                .font(.system(size: 8.6, weight: on ? .semibold : .regular, design: .monospaced))
-                                .foregroundColor(on ? .black : inkSoft)
+                            Text(state.isProMode ? title.uppercased() : title)
+                                .font(state.isProMode
+                                      ? .system(size: 8.6, weight: on ? .semibold : .regular, design: .monospaced)
+                                      : .system(size: 9.8, weight: on ? .semibold : .medium))
+                                .foregroundColor(on ? .white : inkDim)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 23)
+                                .frame(height: 24)
                                 .background {
                                     if on {
-                                        RoundedRectangle(cornerRadius: 5.5, style: .continuous)
-                                            .fill(Color.white)
+                                        frostedSegmentedPill(cornerRadius: 6)
                                             .matchedGeometryEffect(id: "trustZonePill", in: trustZoneNS)
                                     }
                                 }
@@ -1252,21 +1266,23 @@ struct PopoverView: View {
                     }
                 }
                 .padding(2.5)
-                .background(Color.white.opacity(0.05))
-                .clipShape(RoundedRectangle(cornerRadius: 7.5, style: .continuous))
+                .background(Color.white.opacity(0.036))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(hairSoft, lineWidth: 0.8))
             }
 
             // 3. 1-Click Private Lookups (hidden or redirects cleanly to System Settings in MAS sandbox)
             if !state.isSandboxed {
-                VStack(alignment: .leading, spacing: 4.5) {
+                VStack(alignment: .leading, spacing: 5) {
                 HStack {
-                    Text(state.isProMode ? "1-CLICK DNS" : "WEBSITE LOOKUPS (DNS)")
-                        .font(.system(size: 7.6, weight: .semibold, design: .monospaced))
+                    Text(state.isProMode ? "1-CLICK DNS" : "DNS Lookups")
+                        .font(state.isProMode
+                              ? .system(size: 8.0, weight: .semibold, design: .monospaced)
+                              : .system(size: 9.8, weight: .semibold))
                         .foregroundColor(inkDim)
-                        .tracking(0.5)
                     Spacer()
                     Text(state.isApplyingDNS ? "Updating…" : state.dns.providerLabel)
-                        .font(.system(size: 9.0))
+                        .font(.system(size: 9.2, weight: .medium))
                         .foregroundColor(inkSoft)
                         .lineLimit(1)
                 }
@@ -1288,14 +1304,13 @@ struct PopoverView: View {
                             }
                         } label: {
                             Text(label)
-                                .font(.system(size: 9.4, weight: on ? .semibold : .regular))
-                                .foregroundColor(on ? .black : inkSoft)
+                                .font(.system(size: 9.5, weight: on ? .semibold : .medium))
+                                .foregroundColor(on ? .white : inkDim)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 23)
+                                .frame(height: 24)
                                 .background {
                                     if on {
-                                        RoundedRectangle(cornerRadius: 5.5, style: .continuous)
-                                            .fill(Color.white)
+                                        frostedSegmentedPill(cornerRadius: 6)
                                             .matchedGeometryEffect(id: "dnsPresetPill", in: dnsPresetNS)
                                     }
                                 }
@@ -1305,8 +1320,9 @@ struct PopoverView: View {
                     }
                 }
                 .padding(2.5)
-                .background(Color.white.opacity(0.05))
-                .clipShape(RoundedRectangle(cornerRadius: 7.5, style: .continuous))
+                .background(Color.white.opacity(0.036))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(hairSoft, lineWidth: 0.8))
                 }
             }
 
@@ -1424,19 +1440,19 @@ struct PopoverView: View {
             HStack {
                 Text(title)
                     .font(.system(size: 9.6, weight: active ? .semibold : .medium))
-                    .foregroundColor(active ? .black : inkSoft)
+                    .foregroundColor(active ? .white : inkSoft)
                     .lineLimit(1)
                 Spacer(minLength: 2)
                 Image(systemName: active ? "chevron.up" : "chevron.down")
                     .font(.system(size: 8.0, weight: .semibold))
-                    .foregroundColor(active ? .black : inkDim)
+                    .foregroundColor(active ? .white.opacity(0.85) : inkDim)
             }
             .padding(.horizontal, 9)
             .frame(maxWidth: .infinity)
             .frame(height: 27)
-            .background(active ? Color.white : Color.white.opacity(0.055))
+            .background(Color.white.opacity(active ? 0.13 : 0.042))
             .clipShape(RoundedRectangle(cornerRadius: 7.5, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 7.5, style: .continuous).stroke(active ? Color.clear : hairSoft, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 7.5, style: .continuous).stroke(active ? Color.white.opacity(0.24) : hairSoft, lineWidth: 0.9))
         }
         .buttonStyle(.plain)
     }
@@ -1561,7 +1577,7 @@ struct PopoverView: View {
                 }
                 .padding(.vertical, 6)
             } else if !state.nearbyNetworks.isEmpty {
-                nearbyNetworksList(maxHeight: state.isDisconnected ? 225 : 175, limit: 16)
+                nearbyNetworksList(maxHeight: state.isDisconnected ? 202 : 168, limit: 16)
             } else if !state.knownSSIDs.isEmpty {
                 savedNetworksSection(maxHeight: 155)
             } else {
@@ -1774,17 +1790,32 @@ struct PopoverView: View {
         }
     }
 
+    private func frostedSegmentedPill(cornerRadius: CGFloat = 6) -> some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(Color.white.opacity(0.14))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.26), Color.white.opacity(0.07)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 0.85
+                    )
+            )
+    }
+
     private func slidingModeChip(title: String, active: Bool, id: String, ns: Namespace.ID, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 9.4, weight: active ? .semibold : .regular))
-                .foregroundColor(active ? .black : inkSoft)
+                .font(.system(size: 9.4, weight: active ? .semibold : .medium))
+                .foregroundColor(active ? .white : inkDim)
                 .padding(.horizontal, 8.5)
                 .frame(height: 21)
                 .background {
                     if active {
-                        RoundedRectangle(cornerRadius: 5.5, style: .continuous)
-                            .fill(Color.white)
+                        frostedSegmentedPill(cornerRadius: 5.5)
                             .matchedGeometryEffect(id: id, in: ns)
                     }
                 }

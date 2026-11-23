@@ -268,14 +268,24 @@ struct AetherStudioView: View {
                             }
                         } label: {
                             Text("\(band.shortBadge) (\(count))")
-                                .font(.system(size: 8.6, weight: on ? .semibold : .regular, design: .monospaced))
-                                .foregroundColor(on ? .black : inkSoft)
+                                .font(.system(size: 8.6, weight: on ? .semibold : .medium, design: .monospaced))
+                                .foregroundColor(on ? .white : inkDim)
                                 .padding(.horizontal, 8)
                                 .frame(height: 22)
                                 .background {
                                     if on {
                                         Capsule()
-                                            .fill(Color.white)
+                                            .fill(Color.white.opacity(0.15))
+                                            .overlay(
+                                                Capsule().stroke(
+                                                    LinearGradient(
+                                                        colors: [Color.white.opacity(0.28), Color.white.opacity(0.08)],
+                                                        startPoint: .top,
+                                                        endPoint: .bottom
+                                                    ),
+                                                    lineWidth: 0.85
+                                                )
+                                            )
                                             .matchedGeometryEffect(id: "studioBandPill", in: bandNS)
                                     }
                                 }
@@ -401,14 +411,24 @@ struct AetherStudioView: View {
                             }
                         } label: {
                             Text("\(tab.rawValue) (\(count))")
-                                .font(.system(size: 8.4, weight: on ? .semibold : .regular, design: .monospaced))
-                                .foregroundColor(on ? .black : inkSoft)
+                                .font(.system(size: 8.4, weight: on ? .semibold : .medium, design: .monospaced))
+                                .foregroundColor(on ? .white : inkDim)
                                 .padding(.horizontal, 8.5)
                                 .frame(height: 22)
                                 .background {
                                     if on {
                                         Capsule()
-                                            .fill(Color.white)
+                                            .fill(Color.white.opacity(0.15))
+                                            .overlay(
+                                                Capsule().stroke(
+                                                    LinearGradient(
+                                                        colors: [Color.white.opacity(0.28), Color.white.opacity(0.08)],
+                                                        startPoint: .top,
+                                                        endPoint: .bottom
+                                                    ),
+                                                    lineWidth: 0.85
+                                                )
+                                            )
                                             .matchedGeometryEffect(id: "studioBottomTabPill", in: bottomTabNS)
                                     }
                                 }
@@ -493,7 +513,15 @@ struct AetherStudioView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                 }
             }
+            .padding(.bottom, 10)
         }
+        .mask(
+            VStack(spacing: 0) {
+                Color.black
+                LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 16)
+            }
+        )
     }
 
     private var appsAndConnectionsList: some View {
