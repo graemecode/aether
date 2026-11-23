@@ -330,13 +330,14 @@ enum DocSnapshotRenderer {
     }
 
     private static func renderMenuBarIcon(state: AppState) -> NSImage {
-        let v = MenuBarIconView(frame: NSRect(x: 0, y: 0, width: MenuBarIconView.iconWithSpeedWidth, height: 22))
+        let mode: MenuBarDisplayMode = state.isDisconnected ? .iconOnly : .autoSpeed
+        let v = MenuBarIconView(frame: NSRect(x: 0, y: 0, width: MenuBarIconView.width(for: mode), height: 22))
         v.appearance = NSAppearance(named: .darkAqua)
         v.update(
             wifi: state.wifi,
             audit: state.trustAudit,
             throughput: state.currentThroughput,
-            mode: state.isDisconnected ? .iconOnly : .alwaysSpeed,
+            mode: mode,
             isWired: state.isWired
         )
         let w = v.preferredWidth

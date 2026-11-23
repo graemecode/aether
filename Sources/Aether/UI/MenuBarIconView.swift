@@ -2,11 +2,12 @@ import AetherCore
 import AppKit
 import Foundation
 
-/// Ultra-tight Retina menu bar instrument inspired by Braun / Satie geometry.
-/// - Left: crisp 3-arc geometric Wi-Fi emblem whose focal origin dot doubles as the
-///   semantic trust badge (emerald = VPN-shielded, monochrome = trusted, amber = caution, coral = alert).
-/// - Right (optional, flush 3.5pt gap, left-aligned): compact two-row `▾ / ▴` speed readout
-///   with custom CoreGraphics micro-arrows and tabular digits (`50pt` total width vs `20pt` icon-only).
+/// Ultra-tight fixed-width Retina menu bar instrument inspired by Braun / Satie geometry.
+/// Every display mode uses a 100% constant width so the menu bar NEVER shifts other icons left or right:
+///   - `.iconOnly`    (22pt fixed): 3-arc geometric Wi-Fi emblem + integrated trust focal dot.
+///   - `.autoSpeed`   (28pt fixed, DEFAULT): Wi-Fi emblem + two color-coded micro `▾ / ▴` speed arrows
+///                    whose luminance & hue encode live download/upload intensity (idle -> trickle -> active -> burst).
+///   - `.alwaysSpeed` (50pt fixed): Wi-Fi emblem + compact right-aligned numeric `▾ 41M / ▴ 6.5M` stack.
 final class MenuBarIconView: NSView {
     private var signalBars: Int = 0
     private var isPowerOn: Bool = true
@@ -15,13 +16,22 @@ final class MenuBarIconView: NSView {
     private var trustLevel: TrustLevel = .offline
     private var downloadRate: Double = 0
     private var uploadRate: Double = 0
-    private var showSpeedText: Bool = false
+    private var displayMode: MenuBarDisplayMode = .autoSpeed
 
     static let iconOnlyWidth: CGFloat = 22
+    static let activityArrowsWidth: CGFloat = 28
     static let iconWithSpeedWidth: CGFloat = 50
 
+    static func width(for mode: MenuBarDisplayMode) -> CGFloat {
+        switch mode {
+        case .iconOnly:    return iconOnlyWidth
+        case .autoSpeed:   return activityArrowsWidth
+        case .alwaysSpeed: return iconWithSpeedWidth
+        }
+    }
+
     var preferredWidth: CGFloat {
-        showSpeedText ? Self.iconWithSpeedWidth : Self.iconOnlyWidth
+        Self.width(for: displayMode)
     }
 
     override init(frame frameRect: NSRect) {
@@ -51,16 +61,7 @@ final class MenuBarIconView: NSView {
         self.trustLevel = audit.level
         self.downloadRate = throughput.downloadBytesPerSec
         self.uploadRate = throughput.uploadBytesPerSec
-
-        let activeTraffic = (downloadRate + uploadRate) >= 250_000 // only expand in Auto mode on real transfers (>= ~250 KB/s)
-        switch mode {
-        case .iconOnly:
-            self.showSpeedText = false
-        case .autoSpeed:
-            self.showSpeedText = isConnected && activeTraffic
-        case .alwaysSpeed:
-            self.showSpeedText = isConnected
-        }
+        self.displayMode = mode
 
         needsDisplay = true
         return preferredWidth != oldWidth
@@ -73,8 +74,8 @@ final class MenuBarIconView: NSView {
         let isDark = effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
         let inkGray: CGFloat = isDark ? 1.0 : 0.0
 
-        // Center of the 13.4pt-wide Wi-Fi emblem (left-anchored when showing speed, centered when icon-only)
-        let glyphCenterX: CGFloat = showSpeedText ? 8.5 : bounds.width * 0.5
+        // Center of the 13.4pt-wide Wi-Fi emblem (left-anchored when paired with arrows/speed, centered when icon-only)
+        let glyphCenterX: CGFloat = displayMode == .iconOnly ? bounds.width * 0.5 : 8.5
         let midY: CGFloat = h * 0.5
 
         if isWired {
@@ -83,7 +84,12 @@ final class MenuBarIconView: NSView {
             drawWiFiArcs(ctx: ctx, cx: glyphCenterX, midY: midY, inkGray: inkGray)
         }
 
-        if showSpeedText {
+        switch displayMode {
+        case .iconOnly:
+            break
+        case .autoSpeed:
+            drawColorActivityArrows(ctx: ctx, cx: 21.5, midY: midY, inkGray: inkGray, isDark: isDark)
+        case .alwaysSpeed:
             drawTightSpeedStack(ctx: ctx, startX: 18.0, midY: midY, inkGray: inkGray)
         }
     }
@@ -149,6 +155,80 @@ final class MenuBarIconView: NSView {
         let dotR: CGFloat = 2.2
         ctx.setFillColor(trustDotColor ?? CGColor(gray: inkGray, alpha: 0.96))
         ctx.fillEllipse(in: CGRect(x: cx - dotR, y: midY - dotR, width: dotR * 2, height: dotR * 2))
+    }
+
+    // MARK: - Fixed-Width Color-Coded Speed Activity Arrows (28pt Total — Zero Menu Bar Shifting)
+
+    /// Encodes live download (top ▾) & upload (bottom ▴) speed tiers via color & luminance in a constant 8pt slot:
+    ///   - Idle (< 1 KB/s):        whisper dim monochrome (18% alpha)
+    ///   - Trickle (1–80 KB/s):    crisp soft monochrome (56% alpha)
+    ///   - Active (80 KB/s–2 MB/s): luminous ice-blue (down) / warm amber (up)
+    ///   - Burst (>= 2 MB/s):      vivid cyan-emerald (down) / bright coral-gold (up) + subtle crisp glow
+    private func drawColorActivityArrows(ctx: CGContext, cx: CGFloat, midY: CGFloat, inkGray: CGFloat, isDark: Bool) {
+        let downColor = activityColor(bytesPerSec: isConnected ? downloadRate : 0, isUpload: false, inkGray: inkGray, isDark: isDark)
+        let upColor = activityColor(bytesPerSec: isConnected ? uploadRate : 0, isUpload: true, inkGray: inkGray, isDark: isDark)
+
+        drawActivityChevron(ctx: ctx, cx: cx, cy: midY + 3.8, pointingUp: false, color: downColor.fill, glow: downColor.glow)
+        drawActivityChevron(ctx: ctx, cx: cx, cy: midY - 3.8, pointingUp: true, color: upColor.fill, glow: upColor.glow)
+    }
+
+    private func activityColor(bytesPerSec: Double, isUpload: Bool, inkGray: CGFloat, isDark: Bool) -> (fill: CGColor, glow: CGColor?) {
+        if bytesPerSec < 1_024 {
+            return (CGColor(gray: inkGray, alpha: 0.20), nil)
+        }
+        if bytesPerSec < 80_000 {
+            return (CGColor(gray: inkGray, alpha: 0.58), nil)
+        }
+        if bytesPerSec < 2_000_000 {
+            if isUpload {
+                let c = isDark
+                    ? CGColor(red: 1.00, green: 0.74, blue: 0.34, alpha: 0.94)
+                    : CGColor(red: 0.86, green: 0.48, blue: 0.04, alpha: 0.95)
+                return (c, nil)
+            } else {
+                let c = isDark
+                    ? CGColor(red: 0.52, green: 0.84, blue: 1.00, alpha: 0.94)
+                    : CGColor(red: 0.06, green: 0.46, blue: 0.88, alpha: 0.95)
+                return (c, nil)
+            }
+        }
+        // Heavy burst (>= 2 MB/s)
+        if isUpload {
+            let c = isDark
+                ? CGColor(red: 1.00, green: 0.56, blue: 0.26, alpha: 1.0)
+                : CGColor(red: 0.88, green: 0.32, blue: 0.08, alpha: 1.0)
+            let g = CGColor(red: 1.00, green: 0.62, blue: 0.28, alpha: 0.42)
+            return (c, g)
+        } else {
+            let c = isDark
+                ? CGColor(red: 0.24, green: 0.94, blue: 0.74, alpha: 1.0)
+                : CGColor(red: 0.02, green: 0.58, blue: 0.48, alpha: 1.0)
+            let g = CGColor(red: 0.28, green: 0.94, blue: 0.78, alpha: 0.42)
+            return (c, g)
+        }
+    }
+
+    private func drawActivityChevron(ctx: CGContext, cx: CGFloat, cy: CGFloat, pointingUp: Bool, color: CGColor, glow: CGColor?) {
+        let halfW: CGFloat = 2.75
+        let halfH: CGFloat = 1.95
+        ctx.saveGState()
+        if let glow {
+            ctx.setShadow(offset: .zero, blur: 2.6, color: glow)
+        }
+        ctx.setFillColor(color)
+        ctx.beginPath()
+        if pointingUp {
+            ctx.move(to: CGPoint(x: cx, y: cy + halfH))
+            ctx.addLine(to: CGPoint(x: cx + halfW, y: cy - halfH))
+            ctx.addLine(to: CGPoint(x: cx - halfW, y: cy - halfH))
+        } else {
+            ctx.move(to: CGPoint(x: cx, y: cy - halfH))
+            ctx.addLine(to: CGPoint(x: cx + halfW, y: cy + halfH))
+            ctx.addLine(to: CGPoint(x: cx - halfW, y: cy + halfH))
+        }
+        ctx.closePath()
+        ctx.fillPath()
+        ctx.restoreGState()
     }
 
     // MARK: - Compact Right-Aligned Speed Stack (50pt Total — Matches Native Menu Bar Density)

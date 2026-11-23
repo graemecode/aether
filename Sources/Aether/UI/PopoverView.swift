@@ -982,59 +982,64 @@ struct PopoverView: View {
                         .buttonStyle(QuietFooterLinkStyle())
                     }
 
-                    if activeApps.isEmpty {
-                        Text(state.hasSampledProcesses ? "No active app transfers right now" : "Measuring active apps…")
-                            .font(.system(size: 10.2))
-                            .foregroundColor(inkDim)
-                            .padding(.vertical, 2)
-                    } else {
-                        let maxRate = max(activeApps.first?.totalBytesPerSec ?? 1, 1)
-                        VStack(spacing: 5) {
-                            ForEach(activeApps.prefix(5)) { proc in
-                                let displayName = proc.appBundlePath != nil
-                                    ? proc.name
-                                    : (state.isProMode ? proc.name : HumanSummary.friendlyProcessName(proc.name))
-                                HStack(spacing: 8) {
-                                    AppProcessIconView(
-                                        appBundlePath: proc.appBundlePath,
-                                        pid: proc.pid,
-                                        processName: proc.name,
-                                        size: 16
-                                    )
+                    // Fixed 110pt slot (5 rows) so the popover NEVER shifts height while processes load or fluctuate
+                    ZStack(alignment: .topLeading) {
+                        if activeApps.isEmpty {
+                            Text(state.hasSampledProcesses ? "No active app transfers right now" : "Measuring active apps…")
+                                .font(.system(size: 10.2))
+                                .foregroundColor(inkDim)
+                                .padding(.top, 2)
+                        } else {
+                            let maxRate = max(activeApps.first?.totalBytesPerSec ?? 1, 1)
+                            VStack(spacing: 6) {
+                                ForEach(activeApps.prefix(5)) { proc in
+                                    let displayName = proc.appBundlePath != nil
+                                        ? proc.name
+                                        : (state.isProMode ? proc.name : HumanSummary.friendlyProcessName(proc.name))
+                                    HStack(spacing: 8) {
+                                        AppProcessIconView(
+                                            appBundlePath: proc.appBundlePath,
+                                            pid: proc.pid,
+                                            processName: proc.name,
+                                            size: 16
+                                        )
 
-                                    Text(displayName)
-                                        .font(.system(size: 11.2, weight: .medium))
-                                        .foregroundColor(.white.opacity(0.95))
-                                        .lineLimit(1)
-                                        .truncationMode(.tail)
-                                        .frame(minWidth: 100, maxWidth: 136, alignment: .leading)
+                                        Text(displayName)
+                                            .font(.system(size: 11.2, weight: .medium))
+                                            .foregroundColor(.white.opacity(0.95))
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
+                                            .frame(width: 120, alignment: .leading)
 
-                                    GeometryReader { geo in
-                                        let frac = min(1.0, max(0.05, proc.totalBytesPerSec / maxRate))
-                                        ZStack(alignment: .leading) {
-                                            Capsule().fill(Color.white.opacity(0.065))
-                                            Capsule()
-                                                .fill(proc.uploadBytesPerSec > proc.downloadBytesPerSec
-                                                      ? Color(red: 1.0, green: 0.78, blue: 0.48).opacity(0.88)
-                                                      : Color(red: 0.74, green: 0.90, blue: 1.0).opacity(0.88))
-                                                .frame(width: geo.size.width * frac)
-                                                .animation(.easeOut(duration: 0.35), value: frac)
+                                        GeometryReader { geo in
+                                            let frac = min(1.0, max(0.05, proc.totalBytesPerSec / maxRate))
+                                            ZStack(alignment: .leading) {
+                                                Capsule().fill(Color.white.opacity(0.065))
+                                                Capsule()
+                                                    .fill(proc.uploadBytesPerSec > proc.downloadBytesPerSec
+                                                          ? Color(red: 1.0, green: 0.78, blue: 0.48).opacity(0.88)
+                                                          : Color(red: 0.74, green: 0.90, blue: 1.0).opacity(0.88))
+                                                    .frame(width: geo.size.width * frac)
+                                                    .animation(.easeOut(duration: 0.35), value: frac)
+                                            }
                                         }
-                                    }
-                                    .frame(height: 3.5)
+                                        .frame(height: 3.5)
 
-                                    Text(state.isProMode
-                                         ? "↓\(ByteRateFormatter.compact(proc.downloadBytesPerSec)) ↑\(ByteRateFormatter.compact(proc.uploadBytesPerSec))"
-                                         : ByteRateFormatter.menuBar(proc.totalBytesPerSec))
-                                        .font(.system(size: state.isProMode ? 8.8 : 10.2, weight: .medium, design: .monospaced))
-                                        .foregroundColor(inkSoft)
-                                        .monospacedDigit()
-                                        .frame(width: state.isProMode ? 82 : 68, alignment: .trailing)
+                                        Text(state.isProMode
+                                             ? "↓\(ByteRateFormatter.compact(proc.downloadBytesPerSec)) ↑\(ByteRateFormatter.compact(proc.uploadBytesPerSec))"
+                                             : ByteRateFormatter.menuBar(proc.totalBytesPerSec))
+                                            .font(.system(size: state.isProMode ? 8.8 : 10.2, weight: .medium, design: .monospaced))
+                                            .foregroundColor(inkSoft)
+                                            .monospacedDigit()
+                                            .frame(width: state.isProMode ? 82 : 68, alignment: .trailing)
+                                    }
+                                    .frame(height: 17)
+                                    .help(processTooltip(proc, displayName: displayName))
                                 }
-                                .help(processTooltip(proc, displayName: displayName))
                             }
                         }
                     }
+                    .frame(maxWidth: .infinity, minHeight: 110, maxHeight: 110, alignment: .topLeading)
                 }
             }
             #endif
@@ -1932,9 +1937,9 @@ struct PopoverView: View {
 
     private var menuBarModeCaption: String {
         switch state.menuBarMode {
-        case .iconOnly:    return "Just the minimal Wi-Fi icon"
-        case .autoSpeed:   return "Shows speed when active"
-        case .alwaysSpeed: return "Always shows live speed"
+        case .iconOnly:    return "22pt fixed — Wi-Fi icon + trust dot"
+        case .autoSpeed:   return "28pt fixed — color-coded ↓↑ speed arrows"
+        case .alwaysSpeed: return "50pt fixed — Wi-Fi icon + live speed"
         }
     }
 

@@ -145,8 +145,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             state.$stageMode.removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$statusBanner.removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$qualityResult.removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
-            state.$topProcesses.map(\.count).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
-            state.$hasSampledProcesses.removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$activeInterfaces.map(\.count).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$nearbyNetworks.map(\.count).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$vpns.map(\.count).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
@@ -261,7 +259,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Status Bar & Floating Panel
 
     private func setupMenuBar() {
-        statusItem = NSStatusBar.system.statusItem(withLength: MenuBarIconView.iconOnlyWidth)
+        let initialWidth = MenuBarIconView.width(for: AppState.shared.menuBarMode)
+        statusItem = NSStatusBar.system.statusItem(withLength: initialWidth)
         statusItem.autosaveName = "AetherStatusItem"
         guard let button = statusItem.button else { return }
 
@@ -388,9 +387,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let screen = btnWindow?.screen ?? NSScreen.main ?? NSScreen.screens.first
         guard let screen else { return }
 
+        // Strictly lock width to 396pt so long process names or labels can never widen or jitter the popover
         let maxAllowedHeight = max(360, screen.visibleFrame.height - 24)
         let size = CGSize(
-            width: max(396, ceil(fitting.width)),
+            width: 396,
             height: min(maxAllowedHeight, max(210, ceil(fitting.height)))
         )
 

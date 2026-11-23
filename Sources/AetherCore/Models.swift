@@ -54,7 +54,7 @@ public enum MenuBarDisplayMode: String, CaseIterable, Identifiable, Sendable, Co
     public var label: String {
         switch self {
         case .iconOnly:    return "ICON"
-        case .autoSpeed:   return "AUTO"
+        case .autoSpeed:   return "ARROWS"
         case .alwaysSpeed: return "SPEED"
         }
     }
