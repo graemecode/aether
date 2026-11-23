@@ -53,6 +53,7 @@ final class AppState: ObservableObject {
     @Published var sessionPeakBytesPerSec: Double = 0
     @Published var activeInterfaces: [ActiveInterface] = []
     @Published var topProcesses: [ProcessBandwidth] = []
+    @Published var hasSampledProcesses = false
     @Published var studioFocusConnections = false
 
     @Published var qualityResult: NetworkQualityResult?
@@ -341,13 +342,10 @@ final class AppState: ObservableObject {
 
                 let disconnectedOnOpen = isDisconnected
                 Task {
-                    await refreshEnvironment(includeHops: true)
                     await sampleProcessBandwidth()
-                    // Quick second baseline delta so live per-app speeds appear in ~1s on open
-                    try? await Task.sleep(nanoseconds: 900_000_000)
-                    if self.isAnySurfaceOpen {
-                        await sampleProcessBandwidth()
-                    }
+                }
+                Task {
+                    await refreshEnvironment(includeHops: true)
                     if disconnectedOnOpen || rawScanBSSIDs.isEmpty {
                         await scanNearbyNetworks()
                     }
@@ -648,16 +646,18 @@ final class AppState: ObservableObject {
         }
     }
 
+    private var isSamplingProcesses = false
+
     private func sampleProcessBandwidth() async {
-        let now = Date()
-        let rows = await NetworkProbes.sampleNettopSnapshot()
-        if let prev = lastNettopRows, let prevDate = lastNettopDate {
-            let dt = now.timeIntervalSince(prevDate)
-            let top = SystemParsers.diffNettop(previous: prev, current: rows, elapsedSeconds: dt, limit: 6)
+        guard !isSamplingProcesses else { return }
+        isSamplingProcesses = true
+        defer { isSamplingProcesses = false }
+
+        let top = await NetworkProbes.sampleNettopDelta(limit: 6)
+        self.hasSampledProcesses = true
+        if !top.isEmpty || self.currentThroughput.downloadBytesPerSec + self.currentThroughput.uploadBytesPerSec < 512 {
             self.topProcesses = top
         }
-        lastNettopRows = rows
-        lastNettopDate = now
     }
 
     // MARK: - User Actions

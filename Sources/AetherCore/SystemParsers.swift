@@ -418,6 +418,86 @@ public enum SystemParsers {
         return result
     }
 
+    /// Parses the second (delta) sample from `nettop -P -n -t external -L 2 -s 1 -d -J bytes_in,bytes_out -x`.
+    /// Because `-d` emits true per-interval byte deltas in sample #2, this returns live per-app rates in a single ~1.0s call.
+    public static func parseNettopDelta(
+        _ output: String,
+        elapsedSeconds: Double = 1.0,
+        limit: Int = 6,
+        resolveApp: (Int, String) -> ResolvedApp = { AppAttribution.resolve(pid: $0, fallbackName: $1) }
+    ) -> [ProcessBandwidth] {
+        guard elapsedSeconds > 0.05 else { return [] }
+        let chunks = output.components(separatedBy: ",bytes_in,bytes_out,")
+        // chunks[0] is empty before first header; chunks[1] is cumulative sample 1; chunks[2] is 1s delta sample 2
+        guard chunks.count >= 3 else { return [] }
+        let deltaChunk = chunks[chunks.count - 1]
+
+        struct Acc {
+            var displayName: String
+            var appBundlePath: String?
+            var topPID: Int
+            var topPIDRate: Double
+            var down: Double
+            var up: Double
+            var count: Int
+        }
+        var grouped: [String: Acc] = [:]
+
+        for line in deltaChunk.components(separatedBy: .newlines) {
+            let cols = line.split(separator: ",", omittingEmptySubsequences: false)
+            guard cols.count >= 3 else { continue }
+            let procField = String(cols[0]).trimmingCharacters(in: .whitespaces)
+            guard !procField.isEmpty, let dotIdx = procField.lastIndex(of: ".") else { continue }
+            let name = String(procField[..<dotIdx])
+            let pidStr = String(procField[procField.index(after: dotIdx)...])
+            guard let pid = Int(pidStr),
+                  let bin = UInt64(cols[1].trimmingCharacters(in: .whitespaces)),
+                  let bout = UInt64(cols[2].trimmingCharacters(in: .whitespaces)) else {
+                continue
+            }
+            let dIn = Double(bin) / elapsedSeconds
+            let dOut = Double(bout) / elapsedSeconds
+            let total = dIn + dOut
+            guard total >= 128 else { continue }
+
+            let resolved = resolveApp(pid, name)
+            if var acc = grouped[resolved.groupKey] {
+                acc.down += dIn
+                acc.up += dOut
+                acc.count += 1
+                if total > acc.topPIDRate {
+                    acc.topPID = pid
+                    acc.topPIDRate = total
+                }
+                grouped[resolved.groupKey] = acc
+            } else {
+                grouped[resolved.groupKey] = Acc(
+                    displayName: resolved.displayName,
+                    appBundlePath: resolved.appBundlePath,
+                    topPID: pid,
+                    topPIDRate: total,
+                    down: dIn,
+                    up: dOut,
+                    count: 1
+                )
+            }
+        }
+
+        let rates = grouped.values
+            .map {
+                ProcessBandwidth(
+                    name: $0.displayName,
+                    pid: $0.topPID,
+                    downloadBytesPerSec: $0.down,
+                    uploadBytesPerSec: $0.up,
+                    appBundlePath: $0.appBundlePath,
+                    processCount: $0.count
+                )
+            }
+            .sorted { $0.totalBytesPerSec > $1.totalBytesPerSec }
+        return Array(rates.prefix(limit))
+    }
+
     public static func diffNettop(
         previous: [String: NettopRow],
         current: [String: NettopRow],

@@ -775,4 +775,29 @@ final class AetherCoreTests: XCTestCase {
         XCTAssertEqual(ByteRateFormatter.menuBar(544 * 1_024), "544 KB/s")
         XCTAssertEqual(ByteRateFormatter.menuBar(21.9 * 1_024 * 1_024), "21.9 MB/s")
     }
+
+    func testParseNettopDeltaUsesSecondChunkAndGroupsByParentApp() {
+        let sample = """
+        ,bytes_in,bytes_out,
+        Antigravity Hel.100,99999999,88888888,
+        cloudd.200,5555555,1111111,
+        ,bytes_in,bytes_out,
+        Antigravity Hel.100,120000,40000,
+        language_server.101,80000,10000,
+        cloudd.200,11264,0,
+        """
+        let grouped = SystemParsers.parseNettopDelta(sample, elapsedSeconds: 1.0, limit: 5) { pid, name in
+            if pid == 100 || pid == 101 {
+                return ResolvedApp(groupKey: "app:/applications/antigravity.app", displayName: "Antigravity", appBundlePath: "/Applications/Antigravity.app")
+            }
+            return ResolvedApp(groupKey: "bin:\(name.lowercased())", displayName: name, appBundlePath: nil)
+        }
+        XCTAssertEqual(grouped.count, 2)
+        XCTAssertEqual(grouped[0].name, "Antigravity")
+        XCTAssertEqual(grouped[0].processCount, 2)
+        XCTAssertEqual(grouped[0].downloadBytesPerSec, 200_000, accuracy: 1.0)
+        XCTAssertEqual(grouped[0].uploadBytesPerSec, 50_000, accuracy: 1.0)
+        XCTAssertEqual(grouped[1].name, "cloudd")
+        XCTAssertEqual(grouped[1].downloadBytesPerSec, 11_264, accuracy: 1.0)
+    }
 }

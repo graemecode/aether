@@ -533,6 +533,22 @@ public enum NetworkProbes {
 
     // MARK: - Per-Process Bandwidth (`nettop`, Direct Build Only)
 
+    /// Captures a real 1-second external-interface delta per process in a single ~1.0s call.
+    /// `-t external` excludes loopback noise and cuts runtime from ~5.1s down to ~1.0s while still capturing Wi-Fi & VPN traffic.
+    public static func sampleNettopDelta(limit: Int = 6) async -> [ProcessBandwidth] {
+        #if APP_STORE
+        return []
+        #else
+        guard !NativeNetworkTelemetry.isSandboxed else { return [] }
+        let (out, _) = await runCommand(
+            "/usr/bin/nettop",
+            arguments: ["-P", "-n", "-t", "external", "-L", "2", "-s", "1", "-d", "-J", "bytes_in,bytes_out", "-x"],
+            timeoutSeconds: 6.0
+        )
+        return SystemParsers.parseNettopDelta(out, elapsedSeconds: 1.0, limit: limit)
+        #endif
+    }
+
     public static func sampleNettopSnapshot() async -> [String: SystemParsers.NettopRow] {
         #if APP_STORE
         return [:]
@@ -540,8 +556,8 @@ public enum NetworkProbes {
         guard !NativeNetworkTelemetry.isSandboxed else { return [:] }
         let (out, _) = await runCommand(
             "/usr/bin/nettop",
-            arguments: ["-P", "-L", "1", "-J", "bytes_in,bytes_out", "-x"],
-            timeoutSeconds: 2.5
+            arguments: ["-P", "-n", "-t", "external", "-L", "1", "-J", "bytes_in,bytes_out", "-x"],
+            timeoutSeconds: 6.0
         )
         return SystemParsers.parseNettopSnapshot(out)
         #endif

@@ -145,6 +145,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             state.$statusBanner.removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$qualityResult.removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$topProcesses.map(\.count).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
+            state.$hasSampledProcesses.removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$activeInterfaces.map(\.count).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$nearbyNetworks.map(\.count).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$vpns.map(\.count).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
@@ -382,14 +383,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private func repositionFloatingPanel() {
         hostingController.view.layoutSubtreeIfNeeded()
         let fitting = hostingController.view.fittingSize
-        let size = CGSize(
-            width: max(396, ceil(fitting.width)),
-            height: max(210, ceil(fitting.height))
-        )
-
         let btnWindow = statusItem.button?.window
         let screen = btnWindow?.screen ?? NSScreen.main ?? NSScreen.screens.first
         guard let screen else { return }
+
+        let maxAllowedHeight = max(360, screen.visibleFrame.height - 24)
+        let size = CGSize(
+            width: max(396, ceil(fitting.width)),
+            height: min(maxAllowedHeight, max(210, ceil(fitting.height)))
+        )
 
         let btnRect: CGRect?
         if let btn = statusItem.button, let win = btn.window {

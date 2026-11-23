@@ -857,37 +857,178 @@ struct PopoverView: View {
                 .padding(.vertical, 12)
                 .frame(maxWidth: .infinity)
             } else {
-            // 1. Three Relatable Activity Readiness Cards (Video Calls · 4K Video · Live & Games)
+            // 1. Live Traffic Hero Numbers (Download / Upload) + Session Received · Sent · Peak
+            HStack(spacing: 12) {
+                liveRateHeroColumn(
+                    label: "Download",
+                    rate: state.currentThroughput.downloadBytesPerSec,
+                    dotColor: Color(red: 0.72, green: 0.90, blue: 1.0)
+                )
+                liveRateHeroColumn(
+                    label: "Upload",
+                    rate: state.currentThroughput.uploadBytesPerSec,
+                    dotColor: Color(red: 1.0, green: 0.76, blue: 0.44)
+                )
+            }
+
+            HStack(spacing: 0) {
+                sessionMetricColumn(
+                    label: "Received",
+                    value: ByteRateFormatter.totalBytes(state.sessionDownBytes)
+                )
+                sessionMetricColumn(
+                    label: "Sent",
+                    value: ByteRateFormatter.totalBytes(state.sessionUpBytes)
+                )
+                sessionMetricColumn(
+                    label: "Peak",
+                    value: state.sessionPeakBytesPerSec >= 1_024
+                        ? ByteRateFormatter.menuBar(state.sessionPeakBytesPerSec)
+                        : "—"
+                )
+            }
+
+            // 2. Active Interfaces (Wi-Fi / Ethernet / VPN with click-to-copy live IPs)
+            if !state.activeInterfaces.isEmpty {
+                Divider().background(hairSoft)
+                VStack(alignment: .leading, spacing: 3.5) {
+                    Text(state.isProMode ? "INTERFACES" : "Interfaces")
+                        .font(state.isProMode
+                              ? .system(size: 8.0, weight: .semibold, design: .monospaced)
+                              : .system(size: 9.8, weight: .semibold))
+                        .foregroundColor(inkDim)
+                    ForEach(state.activeInterfaces.prefix(3)) { iface in
+                        Button {
+                            state.copyToClipboard(iface.ipAddress, label: iface.ipAddress)
+                        } label: {
+                            HStack(spacing: 7) {
+                                Image(systemName: interfaceSymbol(iface.kind))
+                                    .font(.system(size: 10.4, weight: .medium))
+                                    .foregroundColor(iface.kind == .vpn
+                                                     ? Color(red: 0.34, green: 0.90, blue: 0.66)
+                                                     : inkSoft)
+                                    .frame(width: 14, alignment: .center)
+                                Text(iface.displayName)
+                                    .font(.system(size: 11.0, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.94))
+                                    .lineLimit(1)
+                                Spacer()
+                                Text(iface.ipAddress)
+                                    .font(.system(size: 10.4, weight: .regular, design: .monospaced))
+                                    .foregroundColor(inkSoft)
+                                    .monospacedDigit()
+                            }
+                            .padding(.vertical, 2)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .help("Click to copy \(iface.displayName) IP (\(iface.bsdName))")
+                    }
+                }
+            }
+
+            // 3. Live Parent-Grouped Processes with Real macOS App Icons (Direct Build)
+            #if !APP_STORE
+            if !NativeNetworkTelemetry.isSandboxed {
+                let activeApps = state.topProcesses.filter { $0.totalBytesPerSec >= 256 }
+                Divider().background(hairSoft)
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack {
+                        Text(state.isProMode ? "PROCESSES" : "Processes")
+                            .font(state.isProMode
+                                  ? .system(size: 8.0, weight: .semibold, design: .monospaced)
+                                  : .system(size: 9.8, weight: .semibold))
+                            .foregroundColor(inkDim)
+                        Spacer()
+                        Button("Connections ↗") {
+                            state.studioFocusConnections = true
+                            onOpenStudio()
+                        }
+                        .buttonStyle(QuietFooterLinkStyle())
+                    }
+
+                    if activeApps.isEmpty {
+                        Text(state.hasSampledProcesses ? "No active app transfers right now" : "Measuring active apps…")
+                            .font(.system(size: 10.2))
+                            .foregroundColor(inkDim)
+                            .padding(.vertical, 2)
+                    } else {
+                        let maxRate = max(activeApps.first?.totalBytesPerSec ?? 1, 1)
+                        VStack(spacing: 5) {
+                            ForEach(activeApps.prefix(5)) { proc in
+                                let displayName = proc.appBundlePath != nil
+                                    ? proc.name
+                                    : (state.isProMode ? proc.name : HumanSummary.friendlyProcessName(proc.name))
+                                HStack(spacing: 8) {
+                                    AppProcessIconView(
+                                        appBundlePath: proc.appBundlePath,
+                                        pid: proc.pid,
+                                        processName: proc.name,
+                                        size: 16
+                                    )
+
+                                    Text(displayName)
+                                        .font(.system(size: 11.2, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.95))
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                        .frame(minWidth: 100, maxWidth: 136, alignment: .leading)
+
+                                    GeometryReader { geo in
+                                        let frac = min(1.0, max(0.05, proc.totalBytesPerSec / maxRate))
+                                        ZStack(alignment: .leading) {
+                                            Capsule().fill(Color.white.opacity(0.065))
+                                            Capsule()
+                                                .fill(proc.uploadBytesPerSec > proc.downloadBytesPerSec
+                                                      ? Color(red: 1.0, green: 0.78, blue: 0.48).opacity(0.88)
+                                                      : Color(red: 0.74, green: 0.90, blue: 1.0).opacity(0.88))
+                                                .frame(width: geo.size.width * frac)
+                                                .animation(.easeOut(duration: 0.35), value: frac)
+                                        }
+                                    }
+                                    .frame(height: 3.5)
+
+                                    Text(state.isProMode
+                                         ? "↓\(ByteRateFormatter.compact(proc.downloadBytesPerSec)) ↑\(ByteRateFormatter.compact(proc.uploadBytesPerSec))"
+                                         : ByteRateFormatter.menuBar(proc.totalBytesPerSec))
+                                        .font(.system(size: state.isProMode ? 8.8 : 10.2, weight: .medium, design: .monospaced))
+                                        .foregroundColor(inkSoft)
+                                        .monospacedDigit()
+                                        .frame(width: state.isProMode ? 82 : 68, alignment: .trailing)
+                                }
+                                .help(processTooltip(proc, displayName: displayName))
+                            }
+                        }
+                    }
+                }
+            }
+            #endif
+
+            Divider().background(hairSoft)
+
+            // 4. Compact Activity Readiness Strip (Video Calls · 4K Video · Live & Games)
             HStack(spacing: 6) {
                 ForEach(state.activityReadiness) { item in
                     let accent = readinessColor(item.status)
-                    ZStack(alignment: .topLeading) {
-                        RadialGradient(
-                            colors: [accent.opacity(0.11), Color.clear],
-                            center: .topLeading,
-                            startRadius: 2,
-                            endRadius: 72
-                        )
-                        VStack(alignment: .leading, spacing: 3) {
-                            HStack(spacing: 4.5) {
-                                Image(systemName: readinessIcon(for: item.id))
-                                    .font(.system(size: 8.6, weight: .semibold))
-                                    .foregroundColor(accent)
-                                Text(item.activity)
-                                    .font(.system(size: 8.8, weight: .medium))
-                                    .foregroundColor(inkDim)
-                                    .lineLimit(1)
-                            }
-                            Text(item.verdict)
-                                .font(.system(size: 11.6, weight: .semibold))
-                                .foregroundColor(.white.opacity(0.96))
+                    VStack(alignment: .leading, spacing: 2.5) {
+                        HStack(spacing: 4) {
+                            Image(systemName: readinessIcon(for: item.id))
+                                .font(.system(size: 8.4, weight: .semibold))
+                                .foregroundColor(accent)
+                            Text(item.activity)
+                                .font(.system(size: 8.6, weight: .medium))
+                                .foregroundColor(inkDim)
                                 .lineLimit(1)
                         }
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 7)
+                        Text(item.verdict)
+                            .font(.system(size: 11.0, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.95))
+                            .lineLimit(1)
                     }
+                    .padding(.horizontal, 8.5)
+                    .padding(.vertical, 6)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.white.opacity(0.032))
+                    .background(Color.white.opacity(0.03))
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(accent.opacity(0.18), lineWidth: 0.9))
                     .help(item.detail)
@@ -897,71 +1038,17 @@ struct PopoverView: View {
                 }
             }
 
-            // 2. Editorial "Behind the Signal" Pull-Quote Card (tap to cycle live measured RF facts)
-            let insights = state.signalInsights
-            if !insights.isEmpty {
-                let idx = insightIndex % insights.count
-                let insight = insights[idx]
-                HoverSurfaceButton(cornerRadius: 8.5) {
-                    withAnimation(.spring(response: 0.25, dampingFraction: 0.85)) {
-                        insightIndex = (insightIndex + 1) % max(1, insights.count)
-                    }
-                    state.performHaptic()
-                } content: {
-                    HStack(alignment: .top, spacing: 9) {
-                        RoundedRectangle(cornerRadius: 1.5)
-                            .fill(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.72))
-                            .frame(width: 2.2)
-                            .padding(.vertical, 2)
-
-                        VStack(alignment: .leading, spacing: 2.5) {
-                            HStack {
-                                Text(insight.eyebrow)
-                                    .font(.system(size: 7.4, weight: .semibold, design: .monospaced))
-                                    .foregroundColor(Color(red: 0.74, green: 0.90, blue: 1.0).opacity(0.88))
-                                    .tracking(0.6)
-                                Spacer()
-                                if insights.count > 1 {
-                                    HStack(spacing: 3.5) {
-                                        ForEach(0..<insights.count, id: \.self) { dot in
-                                            Circle()
-                                                .fill(Color.white.opacity(dot == idx ? 0.85 : 0.22))
-                                                .frame(width: dot == idx ? 4.5 : 3.5, height: dot == idx ? 4.5 : 3.5)
-                                        }
-                                    }
-                                }
-                            }
-                            Text(insight.headline)
-                                .font(.system(size: 10.8, weight: .medium))
-                                .foregroundColor(.white.opacity(0.95))
-                                .fixedSize(horizontal: false, vertical: true)
-                            Text(insight.footnote)
-                                .font(.system(size: 9.2))
-                                .foregroundColor(inkDim)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                }
-                .help("Tap to cycle live radio insights")
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(insight.eyebrow): \(insight.headline)")
-                .accessibilityValue(insight.footnote)
-                .accessibilityHint("Activate to read next live signal insight")
-            }
-
-            // 3. Sleek 1-Row Speed & Call Test Strip (expands cleanly only while testing or showing results)
-            VStack(alignment: .leading, spacing: 7) {
+            // 5. Sleek 1-Row Speed & Call Test Strip (expands cleanly only while testing or showing results)
+            VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 8) {
                     VStack(alignment: .leading, spacing: 1) {
                         Text(state.isProMode ? "RESPONSIVENESS & SPEED" : "Speed & Call Test")
                             .font(state.isProMode
                                   ? .system(size: 8.6, weight: .semibold, design: .monospaced)
-                                  : .system(size: 10.8, weight: .semibold))
+                                  : .system(size: 10.6, weight: .semibold))
                             .foregroundColor(.white.opacity(0.92))
-                        Text(state.qualityResult?.plainEnglishVerdict ?? "Measures real throughput & bufferbloat under load")
-                            .font(.system(size: 9.3))
+                        Text(state.qualityResult?.plainEnglishVerdict ?? state.signalInsights.first?.headline ?? "Measures real throughput & bufferbloat under load")
+                            .font(.system(size: 9.2))
                             .foregroundColor(inkDim)
                             .lineLimit(1)
                     }
@@ -971,13 +1058,13 @@ struct PopoverView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Image(systemName: state.isRunningQualityTest ? "waveform" : "bolt.fill")
-                                .font(.system(size: 8.8, weight: .semibold))
+                                .font(.system(size: 8.6, weight: .semibold))
                             Text(state.isRunningQualityTest ? "Testing…" : "Run Test")
                                 .font(.system(size: 9.6, weight: .semibold))
                         }
                         .foregroundColor(state.isRunningQualityTest ? .white.opacity(0.9) : .black)
                         .padding(.horizontal, 11)
-                        .frame(height: 25)
+                        .frame(height: 24)
                         .background(state.isRunningQualityTest ? Color.white.opacity(0.12) : Color.white)
                         .clipShape(Capsule())
                     }
@@ -1001,137 +1088,37 @@ struct PopoverView: View {
                     }
                 }
             }
-            .padding(.top, 2)
-
-            // 4. Pulse-grade Session Traffic, Active Interfaces & Parent-Grouped App Bandwidth
-            Divider().background(hairSoft)
-
-            VStack(alignment: .leading, spacing: 8) {
-                // 4a. Session Totals Strip: Received · Sent · Peak
-                HStack(spacing: 0) {
-                    sessionMetricColumn(
-                        label: "Received",
-                        value: ByteRateFormatter.totalBytes(state.sessionDownBytes)
-                    )
-                    sessionMetricColumn(
-                        label: "Sent",
-                        value: ByteRateFormatter.totalBytes(state.sessionUpBytes)
-                    )
-                    sessionMetricColumn(
-                        label: "Peak",
-                        value: state.sessionPeakBytesPerSec >= 1_024
-                            ? ByteRateFormatter.menuBar(state.sessionPeakBytesPerSec)
-                            : "—"
-                    )
-                }
-
-                // 4b. Active Interfaces (Wi-Fi / Ethernet / VPN with click-to-copy live IPs)
-                if !state.activeInterfaces.isEmpty {
-                    VStack(alignment: .leading, spacing: 3.5) {
-                        Text(state.isProMode ? "INTERFACES" : "Interfaces")
-                            .font(state.isProMode
-                                  ? .system(size: 8.0, weight: .semibold, design: .monospaced)
-                                  : .system(size: 9.8, weight: .semibold))
-                            .foregroundColor(inkDim)
-                        ForEach(state.activeInterfaces.prefix(3)) { iface in
-                            Button {
-                                state.copyToClipboard(iface.ipAddress, label: iface.ipAddress)
-                            } label: {
-                                HStack(spacing: 7) {
-                                    Image(systemName: interfaceSymbol(iface.kind))
-                                        .font(.system(size: 10.2, weight: .medium))
-                                        .foregroundColor(iface.kind == .vpn
-                                                         ? Color(red: 0.34, green: 0.90, blue: 0.66)
-                                                         : inkSoft)
-                                        .frame(width: 14, alignment: .center)
-                                    Text(iface.displayName)
-                                        .font(.system(size: 10.6, weight: .medium))
-                                        .foregroundColor(.white.opacity(0.92))
-                                        .lineLimit(1)
-                                    Spacer()
-                                    Text(iface.ipAddress)
-                                        .font(.system(size: 10.0, weight: .regular, design: .monospaced))
-                                        .foregroundColor(inkSoft)
-                                        .monospacedDigit()
-                                }
-                                .padding(.vertical, 2)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .help("Click to copy \(iface.displayName) IP (\(iface.bsdName))")
-                        }
-                    }
-                }
-
-                // 4c. Live Parent-Grouped Processes with Real macOS App Icons (shows active apps >= 1 KB/s)
-                let activeApps = state.topProcesses.filter { $0.totalBytesPerSec >= 1_024 }
-                if !activeApps.isEmpty {
-                    VStack(alignment: .leading, spacing: 4.5) {
-                        HStack {
-                            Text(state.isProMode ? "PROCESSES" : "Processes")
-                                .font(state.isProMode
-                                      ? .system(size: 8.0, weight: .semibold, design: .monospaced)
-                                      : .system(size: 9.8, weight: .semibold))
-                                .foregroundColor(inkDim)
-                            Spacer()
-                            Button("Connections ↗") {
-                                state.studioFocusConnections = true
-                                onOpenStudio()
-                            }
-                            .buttonStyle(QuietFooterLinkStyle())
-                        }
-
-                        let maxRate = max(activeApps.first?.totalBytesPerSec ?? 1, 1)
-                        VStack(spacing: 4.5) {
-                            ForEach(activeApps.prefix(5)) { proc in
-                                let displayName = proc.appBundlePath != nil
-                                    ? proc.name
-                                    : (state.isProMode ? proc.name : HumanSummary.friendlyProcessName(proc.name))
-                                HStack(spacing: 7.5) {
-                                    AppProcessIconView(
-                                        appBundlePath: proc.appBundlePath,
-                                        pid: proc.pid,
-                                        processName: proc.name,
-                                        size: 16
-                                    )
-
-                                    Text(displayName)
-                                        .font(.system(size: 10.8, weight: .medium))
-                                        .foregroundColor(.white.opacity(0.94))
-                                        .lineLimit(1)
-                                        .truncationMode(.tail)
-                                        .frame(minWidth: 96, maxWidth: 132, alignment: .leading)
-
-                                    GeometryReader { geo in
-                                        let frac = min(1.0, max(0.05, proc.totalBytesPerSec / maxRate))
-                                        ZStack(alignment: .leading) {
-                                            Capsule().fill(Color.white.opacity(0.065))
-                                            Capsule()
-                                                .fill(proc.uploadBytesPerSec > proc.downloadBytesPerSec
-                                                      ? Color(red: 1.0, green: 0.78, blue: 0.48).opacity(0.88)
-                                                      : Color(red: 0.74, green: 0.90, blue: 1.0).opacity(0.88))
-                                                .frame(width: geo.size.width * frac)
-                                                .animation(.easeOut(duration: 0.35), value: frac)
-                                        }
-                                    }
-                                    .frame(height: 3.5)
-
-                                    Text(state.isProMode
-                                         ? "↓\(ByteRateFormatter.compact(proc.downloadBytesPerSec)) ↑\(ByteRateFormatter.compact(proc.uploadBytesPerSec))"
-                                         : ByteRateFormatter.menuBar(proc.totalBytesPerSec))
-                                        .font(.system(size: state.isProMode ? 8.6 : 9.8, weight: .medium, design: .monospaced))
-                                        .foregroundColor(inkSoft)
-                                        .monospacedDigit()
-                                        .frame(width: state.isProMode ? 82 : 66, alignment: .trailing)
-                                }
-                                .help(processTooltip(proc, displayName: displayName))
-                            }
-                        }
-                    }
-                }
-            }
             } // end connected branch
         }
+    }
+
+    private func liveRateHeroColumn(label: String, rate: Double, dotColor: Color) -> some View {
+        let formatted = ByteRateFormatter.menuBar(rate)
+        let parts = formatted.split(separator: " ", maxSplits: 1)
+        let numPart = parts.first.map(String.init) ?? formatted
+        let unitPart = parts.count > 1 ? String(parts[1]) : ""
+        return VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(dotColor)
+                    .frame(width: 6, height: 6)
+                Text(label)
+                    .font(.system(size: 10.2, weight: .medium))
+                    .foregroundColor(inkSoft)
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 3.5) {
+                Text(numPart)
+                    .font(.system(size: 20.0, weight: .semibold, design: .rounded))
+                    .foregroundColor(.white)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                Text(unitPart)
+                    .font(.system(size: 10.2, weight: .medium, design: .monospaced))
+                    .foregroundColor(inkDim)
+            }
+            .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func sessionMetricColumn(label: String, value: String) -> some View {
