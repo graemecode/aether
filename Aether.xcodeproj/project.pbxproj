@@ -14,6 +14,7 @@
 		144BF9B34906A6F8BD5C2BA2 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3EDFD35C113702F2BB9909FB /* PrivacyInfo.xcprivacy */; };
 		26086180DAF77657E099C5BD /* NetworkProbes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 323CCF1BF77ADE6B3C648494 /* NetworkProbes.swift */; };
 		3074C126B52D92C9C4C245A4 /* Network.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BF205FC07B9374DA175A9605 /* Network.framework */; };
+		30AE3AA2EBBD8682AE1595FC /* LocalNetworkAdvisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F71116507A186DD69285F990 /* LocalNetworkAdvisor.swift */; };
 		3124D37ED9EED7DD6E942E0D /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 068AB3C111F1F8610EC5ADE0 /* CoreLocation.framework */; };
 		3A0AEDF4E06461FC642FAA11 /* AetherGlyphs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D2DEDB5B62FC65A93580316 /* AetherGlyphs.swift */; };
 		51B5915F792EE66BDEA95790 /* RFPhysics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 273E4BD9D562B6ABA4202FD8 /* RFPhysics.swift */; };
@@ -97,6 +98,7 @@
 		E420AE83154850AB446B61D3 /* SystemParsers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemParsers.swift; sourceTree = "<group>"; };
 		E9874F2676B8BC32FD93FF0E /* DocSnapshotRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocSnapshotRenderer.swift; sourceTree = "<group>"; };
 		F70FB36659CF313210744BA5 /* OUIVendorLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OUIVendorLookup.swift; sourceTree = "<group>"; };
+		F71116507A186DD69285F990 /* LocalNetworkAdvisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalNetworkAdvisor.swift; sourceTree = "<group>"; };
 		F850E0DF6E6D9F2EF0BFD106 /* HumanSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumanSummary.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -208,6 +210,7 @@
 				CC0149588500073FFF69774A /* ConnectionMonitor.swift */,
 				F850E0DF6E6D9F2EF0BFD106 /* HumanSummary.swift */,
 				8EA7517D311A49043B0ABBD7 /* InterfaceCounters.swift */,
+				F71116507A186DD69285F990 /* LocalNetworkAdvisor.swift */,
 				CEA5A2EFE1B43D5CCFA86827 /* MenuBarPositioner.swift */,
 				95651E7315D01DF2FC04C702 /* Models.swift */,
 				6AC90F79A5B172B91B787893 /* NativeNetworkTelemetry.swift */,
@@ -350,6 +353,7 @@
 				AA2E679283502618E5F81B31 /* ConnectionMonitor.swift in Sources */,
 				E9716603DB29FBFDD5DCA362 /* HumanSummary.swift in Sources */,
 				8FB5351D93368DCCEF06AA35 /* InterfaceCounters.swift in Sources */,
+				30AE3AA2EBBD8682AE1595FC /* LocalNetworkAdvisor.swift in Sources */,
 				F0B8AC1CC1BD7785980B33A2 /* MenuBarPositioner.swift in Sources */,
 				B223B0C7C3F2EBA4A88A5DE9 /* Models.swift in Sources */,
 				5A4CE766844F9830F8BB52AD /* NativeNetworkTelemetry.swift in Sources */,

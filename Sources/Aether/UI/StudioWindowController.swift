@@ -82,6 +82,7 @@ struct AetherStudioView: View {
     @ObservedObject var state: AppState
     @State private var selectedBand: WiFiBand = .band24
     @State private var bottomLeftTab: BottomLeftTab = .lanDevices
+    @State private var askInput: String = ""
     @Namespace private var bandNS
     @Namespace private var bottomTabNS
 
@@ -215,6 +216,9 @@ struct AetherStudioView: View {
                 eventLogCard
             }
             .frame(maxHeight: .infinity)
+
+            // Quiet On-Device "Ask Aether" Command Strip (0% idle cost, 100% local)
+            studioAskBar
         }
         .padding(18)
         .background(bg)
@@ -634,15 +638,64 @@ struct AetherStudioView: View {
 
     private var eventLogCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
+            HStack(spacing: 8) {
                 Text("CONNECTION EVENT LOG")
                     .font(.system(size: 9.0, weight: .semibold, design: .monospaced))
                     .foregroundColor(inkSoft)
                     .tracking(0.6)
                 Spacer()
+                Button {
+                    state.explainStudioEvents()
+                } label: {
+                    HStack(spacing: 3.5) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 8.2, weight: .semibold))
+                        Text(state.isExplainingEvents ? "Analyzing…" : "Explain")
+                            .font(.system(size: 8.8, weight: .semibold))
+                    }
+                    .foregroundColor(Color(red: 0.72, green: 0.90, blue: 1.0))
+                    .padding(.horizontal, 8)
+                    .frame(height: 20)
+                    .background(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.10))
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.24), lineWidth: 0.8))
+                }
+                .buttonStyle(.plain)
+                .disabled(state.isExplainingEvents)
+                .help("Summarize recent events & live stability on-device")
+
                 Text("\(state.events.count) EVENTS")
                     .font(.system(size: 8.0, design: .monospaced))
                     .foregroundColor(inkDim)
+            }
+
+            if let summary = state.studioEventSummary {
+                HStack(alignment: .top, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 2.5) {
+                        Text(summary.usedOnDeviceModel ? "ON-DEVICE ANALYSIS" : "LOCAL ANALYSIS")
+                            .font(.system(size: 7.6, weight: .semibold, design: .monospaced))
+                            .foregroundColor(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.88))
+                            .tracking(0.5)
+                        Text(summary.text)
+                            .font(.system(size: 10.4))
+                            .foregroundColor(.white.opacity(0.92))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 4)
+                    Button {
+                        state.studioEventSummary = nil
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 8.5, weight: .semibold))
+                            .foregroundColor(inkDim)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, 9)
+                .padding(.vertical, 7)
+                .background(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.20), lineWidth: 0.8))
             }
 
             if state.events.isEmpty {
@@ -695,6 +748,128 @@ struct AetherStudioView: View {
         .background(cardBg)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(specularBorder(radius: 12))
+    }
+
+    // MARK: - 5. Quiet On-Device "Ask Aether" Bar
+
+    private var studioAskBar: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            if let ans = state.studioAnswer {
+                HStack(alignment: .top, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 8.6, weight: .semibold))
+                                .foregroundColor(Color(red: 0.72, green: 0.90, blue: 1.0))
+                            Text(ans.usedOnDeviceModel ? "ON-DEVICE · \(ans.question.uppercased())" : "LOCAL · \(ans.question.uppercased())")
+                                .font(.system(size: 8.0, weight: .semibold, design: .monospaced))
+                                .foregroundColor(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.9))
+                                .lineLimit(1)
+                        }
+                        Text(ans.text)
+                            .font(.system(size: 10.8))
+                            .foregroundColor(.white.opacity(0.94))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 6)
+                    HStack(spacing: 6) {
+                        Button("Copy") {
+                            state.copyToClipboard(ans.text, label: "Answer")
+                        }
+                        .font(.system(size: 9.2, weight: .medium))
+                        .foregroundColor(inkSoft)
+                        .padding(.horizontal, 8)
+                        .frame(height: 22)
+                        .background(Color.white.opacity(0.07))
+                        .clipShape(Capsule())
+                        .buttonStyle(.plain)
+
+                        Button {
+                            state.studioAnswer = nil
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 9.0, weight: .semibold))
+                                .foregroundColor(inkDim)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.22), lineWidth: 0.85)
+                )
+            }
+
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 10.5, weight: .medium))
+                    .foregroundColor(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.85))
+
+                TextField(
+                    state.isOnDeviceAIAvailable
+                        ? "Ask Aether on-device (e.g. “Can I take a Zoom call?” or “Write an ISP note”)…"
+                        : "Ask Aether about this connection…",
+                    text: $askInput
+                )
+                .textFieldStyle(.plain)
+                .font(.system(size: 11.0))
+                .foregroundColor(.white)
+                .onSubmit {
+                    submitStudioQuestion()
+                }
+
+                if askInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    HStack(spacing: 5) {
+                        quickAskChip("Zoom ready?", prompt: "Can I take a video call right now?")
+                        quickAskChip("Why slow?", prompt: "What is the main bottleneck slowing this connection down right now?")
+                        quickAskChip("ISP note", prompt: "Write a concise factual summary of these network measurements that I can paste to my ISP or IT support.")
+                    }
+                } else {
+                    Button(state.isAnsweringQuestion ? "Thinking…" : "Ask") {
+                        submitStudioQuestion()
+                    }
+                    .font(.system(size: 9.8, weight: .semibold))
+                    .foregroundColor(.black)
+                    .padding(.horizontal, 11)
+                    .frame(height: 23)
+                    .background(Color.white)
+                    .clipShape(Capsule())
+                    .buttonStyle(.plain)
+                    .disabled(state.isAnsweringQuestion)
+                }
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 36)
+            .background(cardBg)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay(specularBorder(radius: 10, subtle: true))
+        }
+    }
+
+    private func quickAskChip(_ label: String, prompt: String) -> some View {
+        Button(label) {
+            state.askAether(prompt)
+        }
+        .font(.system(size: 9.2, weight: .medium))
+        .foregroundColor(inkSoft)
+        .padding(.horizontal, 8.5)
+        .frame(height: 22)
+        .background(Color.white.opacity(0.055))
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(Color.white.opacity(0.11), lineWidth: 0.75))
+        .buttonStyle(.plain)
+        .disabled(state.isAnsweringQuestion)
+    }
+
+    private func submitStudioQuestion() {
+        let q = askInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return }
+        askInput = ""
+        state.askAether(q)
     }
 
     // MARK: - Helpers

@@ -836,4 +836,57 @@ final class AetherCoreTests: XCTestCase {
         XCTAssertEqual(readiness[2].status, ReadinessStatus.poor) // Live & Games -> Laggy
         XCTAssertEqual(HumanSummary.humanHopLabel(ms: hops.internetMs, warn: 70, bad: 150), "Slow")
     }
+
+    func testLocalNetworkAdvisorGroundedContextAndContradictionGuard() {
+        let cabinWiFi = WiFiSnapshot(
+            powerOn: true,
+            isConnected: true,
+            ssid: "Unitedwifi.com",
+            rssi: -52,
+            noise: -91,
+            txRateMbps: 360,
+            channel: 149,
+            band: .band5,
+            channelWidthMHz: 80,
+            security: .open
+        )
+        let input = NetworkAdvisorInput(
+            wifi: cabinWiFi,
+            isWired: false,
+            hopHealth: HopHealth(routerMs: 3.0, dnsMs: 4.0, internetMs: 642.0),
+            stability: StabilityMetrics(avgInternetMs: 642.0, jitterMs: 2.2, packetLossPercent: 0, callGrade: .choppy, verdict: "High RTT"),
+            channelAnalysis: ChannelAnalysis(),
+            rfPhysics: RFPhysics.compute(wifi: cabinWiFi, overlappingAPs: 0),
+            awdl: AWDLSnapshot(),
+            trustAudit: TrustAudit(level: .caution, score: 78, headline: "Open Wi-Fi shielded by VPN"),
+            trustZone: .untrusted,
+            vpns: [VPNService(uuid: "1", name: "Twingate", bundleID: "com.twingate.macos", status: "Connected")],
+            dns: DNSSnapshot(servers: ["100.95.0.251"], providerLabel: "VPN DNS", posture: .vpnTunnel, hasTunnelResolver: true),
+            exposure: LANExposureSnapshot(neighborCount: 33),
+            throughput: ThroughputSample(downloadBytesPerSec: 32_000, uploadBytesPerSec: 885_000),
+            sessionPeakBytesPerSec: 1_320_000,
+            topProcesses: [
+                ProcessBandwidth(name: "Antigravity", pid: 100, downloadBytesPerSec: 1_000, uploadBytesPerSec: 119_000)
+            ],
+            qualityResult: nil,
+            events: []
+        )
+
+        let ctx = LocalNetworkAdvisor.buildGroundedContext(from: input)
+        XCTAssertTrue(ctx.contains("Unitedwifi.com"))
+        XCTAssertTrue(ctx.contains("642 ms"))
+        XCTAssertTrue(ctx.contains("Antigravity"))
+        XCTAssertTrue(ctx.contains("Twingate VPN is already connected"))
+
+        let diag = LocalNetworkAdvisor.deterministicDiagnosis(from: input)
+        XCTAssertTrue(diag.summary.contains("642 ms"))
+        XCTAssertTrue(diag.summary.contains("Antigravity"))
+        XCTAssertTrue(diag.nextStep.contains("Antigravity"))
+
+        // Contradiction guard must block hallucinated "switch to 5 GHz" when already on 5 GHz,
+        // and block "turn on a VPN" when Twingate is already connected!
+        XCTAssertTrue(LocalNetworkAdvisor.containsContradiction(text: "Try to switch to 5 GHz for faster speed.", input: input))
+        XCTAssertTrue(LocalNetworkAdvisor.containsContradiction(text: "You should turn on a VPN on public Wi-Fi.", input: input))
+        XCTAssertFalse(LocalNetworkAdvisor.containsContradiction(text: "Pause Antigravity uploads while on satellite Wi-Fi.", input: input))
+    }
 }

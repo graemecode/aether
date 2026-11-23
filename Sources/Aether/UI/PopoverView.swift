@@ -1093,25 +1093,115 @@ struct PopoverView: View {
                             .lineLimit(1)
                     }
                     Spacer(minLength: 4)
-                    Button {
-                        state.runQualityTest()
-                    } label: {
-                        HStack(spacing: 4.5) {
-                            Image(systemName: state.isRunningQualityTest ? "waveform" : "bolt.fill")
-                                .font(.system(size: 8.8, weight: .semibold))
-                            Text(state.isRunningQualityTest ? "Testing…" : "Run Test")
-                                .font(.system(size: 10.0, weight: .semibold))
+                    HStack(spacing: 5.5) {
+                        Button {
+                            if state.aiDiagnosis != nil && !state.isGeneratingBrief {
+                                state.dismissLocalBrief()
+                            } else {
+                                state.generateLocalBrief()
+                            }
+                        } label: {
+                            HStack(spacing: 3.5) {
+                                Image(systemName: "sparkles")
+                                    .font(.system(size: 8.6, weight: .semibold))
+                                Text(state.isGeneratingBrief ? "…" : "Brief")
+                                    .font(.system(size: 9.8, weight: .semibold))
+                            }
+                            .foregroundColor(state.aiDiagnosis != nil ? Color(red: 0.72, green: 0.90, blue: 1.0) : .white.opacity(0.88))
+                            .padding(.horizontal, 9.5)
+                            .frame(height: 25)
+                            .background(Color.white.opacity(state.aiDiagnosis != nil ? 0.13 : 0.06))
+                            .clipShape(Capsule())
+                            .overlay(
+                                Capsule().stroke(
+                                    state.aiDiagnosis != nil
+                                        ? Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.35)
+                                        : Color.white.opacity(0.14),
+                                    lineWidth: 0.85
+                                )
+                            )
                         }
-                        .foregroundColor(.white.opacity(0.95))
-                        .padding(.horizontal, 11)
-                        .frame(height: 25)
-                        .background(Color.white.opacity(state.isRunningQualityTest ? 0.08 : 0.11))
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Color.white.opacity(0.22), lineWidth: 0.85))
+                        .buttonStyle(.plain)
+                        .disabled(state.isGeneratingBrief)
+                        .help(state.isOnDeviceAIAvailable
+                              ? "On-device Apple Intelligence Wi-Fi diagnosis (100% local)"
+                              : "Instant local Wi-Fi diagnosis")
+
+                        Button {
+                            state.runQualityTest()
+                        } label: {
+                            HStack(spacing: 4.5) {
+                                Image(systemName: state.isRunningQualityTest ? "waveform" : "bolt.fill")
+                                    .font(.system(size: 8.8, weight: .semibold))
+                                Text(state.isRunningQualityTest ? "Testing…" : "Run Test")
+                                    .font(.system(size: 10.0, weight: .semibold))
+                            }
+                            .foregroundColor(.white.opacity(0.95))
+                            .padding(.horizontal, 10.5)
+                            .frame(height: 25)
+                            .background(Color.white.opacity(state.isRunningQualityTest ? 0.08 : 0.11))
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(Color.white.opacity(0.22), lineWidth: 0.85))
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(state.isRunningQualityTest)
+                        .help("Run Apple networkQuality speed & responsiveness test (Space)")
                     }
-                    .buttonStyle(.plain)
-                    .disabled(state.isRunningQualityTest)
-                    .help("Run Apple networkQuality speed & responsiveness test (Space)")
+                }
+
+                if state.isGeneratingBrief {
+                    IndeterminateShimmerBar()
+                        .frame(height: 2.5)
+                } else if let brief = state.aiDiagnosis {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 5) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 8.2, weight: .semibold))
+                                .foregroundColor(Color(red: 0.72, green: 0.90, blue: 1.0))
+                            Text(brief.usedOnDeviceModel ? "ON-DEVICE BRIEF" : "LOCAL BRIEF")
+                                .font(.system(size: 8.0, weight: .semibold, design: .monospaced))
+                                .foregroundColor(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.9))
+                                .tracking(0.5)
+                            Spacer()
+                            Button {
+                                state.generateLocalBrief()
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 9.0, weight: .medium))
+                                    .foregroundColor(inkDim)
+                            }
+                            .buttonStyle(.plain)
+                            .help("Refresh diagnosis")
+
+                            Button {
+                                state.dismissLocalBrief()
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 8.8, weight: .semibold))
+                                    .foregroundColor(inkDim)
+                            }
+                            .buttonStyle(.plain)
+                            .help("Dismiss")
+                        }
+
+                        Text(brief.summary)
+                            .font(.system(size: 10.6, weight: .medium))
+                            .foregroundColor(.white.opacity(0.95))
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(brief.nextStep)
+                            .font(.system(size: 9.6))
+                            .foregroundColor(inkSoft)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 8.5, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8.5, style: .continuous)
+                            .stroke(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.22), lineWidth: 0.85)
+                    )
                 }
 
                 if state.isRunningQualityTest {

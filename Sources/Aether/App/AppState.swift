@@ -59,6 +59,19 @@ final class AppState: ObservableObject {
     @Published var qualityResult: NetworkQualityResult?
     @Published var isRunningQualityTest = false
 
+    // MARK: - On-Device Network Intelligence (Apple FoundationModels on macOS 26+, Strictly On-Demand)
+
+    @Published var aiDiagnosis: NetworkDiagnosis?
+    @Published var isGeneratingBrief = false
+    @Published var studioEventSummary: (text: String, usedOnDeviceModel: Bool)?
+    @Published var isExplainingEvents = false
+    @Published var studioAnswer: (question: String, text: String, usedOnDeviceModel: Bool)?
+    @Published var isAnsweringQuestion = false
+
+    var isOnDeviceAIAvailable: Bool {
+        LocalNetworkAdvisor.isOnDeviceModelAvailable
+    }
+
     // MARK: - Networks & Public IP
 
     @Published var nearbyNetworks: [NearbyNetwork] = []
@@ -657,6 +670,81 @@ final class AppState: ObservableObject {
         self.hasSampledProcesses = true
         if !top.isEmpty || self.currentThroughput.downloadBytesPerSec + self.currentThroughput.uploadBytesPerSec < 512 {
             self.topProcesses = top
+        }
+    }
+
+    // MARK: - On-Device Network Intelligence Actions (Strictly On-Demand — 0% Idle CPU)
+
+    private var briefTask: Task<Void, Never>?
+    private var explainTask: Task<Void, Never>?
+    private var askTask: Task<Void, Never>?
+
+    func makeAdvisorInput() -> NetworkAdvisorInput {
+        NetworkAdvisorInput(
+            wifi: wifi,
+            isWired: isWired,
+            hopHealth: hopHealth,
+            stability: stability,
+            channelAnalysis: channelAnalysis,
+            rfPhysics: rfPhysics,
+            awdl: awdl,
+            trustAudit: trustAudit,
+            trustZone: currentTrustZone,
+            vpns: vpns,
+            dns: dns,
+            exposure: exposure,
+            throughput: currentThroughput,
+            sessionPeakBytesPerSec: sessionPeakBytesPerSec,
+            topProcesses: topProcesses,
+            qualityResult: qualityResult,
+            events: events
+        )
+    }
+
+    func generateLocalBrief() {
+        performHaptic()
+        briefTask?.cancel()
+        isGeneratingBrief = true
+        let input = makeAdvisorInput()
+        briefTask = Task { [weak self] in
+            let diag = await LocalNetworkAdvisor.generateDiagnosis(from: input)
+            guard !Task.isCancelled, let self else { return }
+            self.aiDiagnosis = diag
+            self.isGeneratingBrief = false
+        }
+    }
+
+    func dismissLocalBrief() {
+        briefTask?.cancel()
+        isGeneratingBrief = false
+        aiDiagnosis = nil
+    }
+
+    func explainStudioEvents() {
+        performHaptic()
+        explainTask?.cancel()
+        isExplainingEvents = true
+        let input = makeAdvisorInput()
+        explainTask = Task { [weak self] in
+            let res = await LocalNetworkAdvisor.explainEvents(from: input)
+            guard !Task.isCancelled, let self else { return }
+            self.studioEventSummary = res
+            self.isExplainingEvents = false
+        }
+    }
+
+    func askAether(_ question: String) {
+        let q = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else { return }
+        performHaptic()
+        askTask?.cancel()
+        isAnsweringQuestion = true
+        let input = makeAdvisorInput()
+        askTask = Task { [weak self] in
+            let res = await LocalNetworkAdvisor.answer(question: q, input: input)
+            guard !Task.isCancelled, let self else { return }
+            self.studioAnswer = (question: q, text: res.text, usedOnDeviceModel: res.usedOnDeviceModel)
+            self.isAnsweringQuestion = false
         }
     }
 
