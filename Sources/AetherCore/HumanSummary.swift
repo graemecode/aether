@@ -87,6 +87,13 @@ public enum HumanSummary {
                     status: .poor
                 )
             }
+            if let internetMs = hopHealth.internetMs, internetMs >= 220 {
+                return ActivityReadinessItem(
+                    id: "calls", activity: "Video Calls", verdict: "Laggy",
+                    detail: String(format: "High internet latency (%dms) — calls will lag", Int(round(internetMs))),
+                    status: .poor
+                )
+            }
             if stability.callGrade == .choppy || (hopHealth.routerMs ?? 0) >= 60 {
                 return ActivityReadinessItem(
                     id: "calls", activity: "Video Calls", verdict: "Choppy",
@@ -115,21 +122,59 @@ public enum HumanSummary {
             )
         }()
 
-        // 4K Video (needs ~25 Mbps sustained download)
+        // 4K Video (needs ~25 Mbps sustained download — never claim "Ready" from local Wi-Fi PHY alone on slow/satellite upstream)
         let stream: ActivityReadinessItem = {
-            let effectiveMbps: Double
+            if hopHealth.internetMs == nil && stability.callGrade == .offline {
+                return ActivityReadinessItem(
+                    id: "stream", activity: "4K Video", verdict: "No route",
+                    detail: "Router is up, but upstream internet is unreachable",
+                    status: .poor
+                )
+            }
             if let q = quality {
-                effectiveMbps = q.downloadMbps
-            } else if isWired {
-                effectiveMbps = 250
-            } else {
-                effectiveMbps = Double(rfPhysics.realMaxTcpMbps)
+                let effectiveMbps = q.downloadMbps
+                if effectiveMbps >= 35 {
+                    return ActivityReadinessItem(
+                        id: "stream", activity: "4K Video", verdict: "Ready",
+                        detail: String(format: "Measured %.0f Mbps download", effectiveMbps),
+                        status: .great
+                    )
+                }
+                if effectiveMbps >= 12 {
+                    return ActivityReadinessItem(
+                        id: "stream", activity: "4K Video", verdict: "HD Ready",
+                        detail: String(format: "Measured %.0f Mbps — great for 1080p; 4K may buffer", effectiveMbps),
+                        status: .okay
+                    )
+                }
+                return ActivityReadinessItem(
+                    id: "stream", activity: "4K Video", verdict: "Slow",
+                    detail: String(format: "Measured %.1f Mbps — tight for high-res streaming", effectiveMbps),
+                    status: .poor
+                )
             }
 
+            let upstreamRtt = hopHealth.internetMs ?? stability.avgInternetMs ?? 0
+            if upstreamRtt >= 400 || stability.packetLossPercent >= 8.0 {
+                return ActivityReadinessItem(
+                    id: "stream", activity: "4K Video", verdict: "Slow",
+                    detail: String(format: "High upstream latency (%dms) — run Speed Test to verify", Int(round(upstreamRtt))),
+                    status: .poor
+                )
+            }
+            if upstreamRtt >= 180 || stability.packetLossPercent >= 3.0 {
+                return ActivityReadinessItem(
+                    id: "stream", activity: "4K Video", verdict: "May buffer",
+                    detail: String(format: "Elevated upstream latency (%dms) — 4K may buffer", Int(round(upstreamRtt))),
+                    status: .okay
+                )
+            }
+
+            let effectiveMbps = isWired ? 250.0 : Double(rfPhysics.realMaxTcpMbps)
             if effectiveMbps >= 35 {
                 return ActivityReadinessItem(
                     id: "stream", activity: "4K Video", verdict: "Ready",
-                    detail: String(format: "Plenty of headroom (~%.0f Mbps)", effectiveMbps),
+                    detail: String(format: "Strong local link (~%.0f Mbps) & low latency · run Test for exact Mbps", effectiveMbps),
                     status: .great
                 )
             }

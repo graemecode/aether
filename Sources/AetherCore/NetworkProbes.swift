@@ -433,10 +433,34 @@ public enum NetworkProbes {
     public static func probeHopHealth(gatewayIP: String?) async -> HopHealth {
         async let router = probePingMs(host: gatewayIP)
         async let dns = probeDNSLatencyMs()
-        // Use dual-stack hostname instead of IPv4 literal so Apple IPv6-only NAT64 review passes (Guideline 2.5.5)
-        async let internet = probeTCPConnectMs(host: "one.one.one.one", port: 443)
+        // End-to-end internet RTT: immune to satellite TCP-PEPs and local VPN SYN-ACK spoofing,
+        // while staying dual-stack / IPv6-only NAT64 safe (Guideline 2.5.5).
+        async let internet = probeInternetRTTMs()
         let (r, d, w) = await (router, dns, internet)
         return HopHealth(routerMs: r, dnsMs: d, internetMs: w, updatedAt: Date())
+    }
+
+    /// Measures true end-to-end internet RTT without getting fooled by local TCP-PEPs (airplane Wi-Fi /
+    /// satellite routers / VPN user-space TCP proxies that spoof TCP SYN-ACK in <5ms).
+    /// 1. Primary: native unprivileged `SOCK_DGRAM` ICMP Echo to dynamically resolved `one.one.one.one`.
+    /// 2. Fallback (if ICMP is blocked or on IPv6-only NAT64): authenticated TLS handshake to `one.one.one.one:443`.
+    public static func probeInternetRTTMs() async -> Double? {
+        let icmpMs: Double? = await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .utility).async {
+                guard let ipv4 = NativeNetworkTelemetry.resolveIPv4Address(hostname: "one.one.one.one") else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                continuation.resume(returning: NativeNetworkTelemetry.icmpPingMs(ipv4Host: ipv4, timeoutMs: 2200))
+            }
+        }
+        if let icmpMs { return icmpMs }
+
+        // Fallback when ICMP is filtered or on IPv6-only networks: TLS handshake cannot be spoofed by a TCP-PEP
+        if let tlsMs = await probeTLSHandshakeMs(host: "one.one.one.one", port: 443) {
+            return tlsMs / 2.0
+        }
+        return nil
     }
 
     private static func probePingMs(host: String?) async -> Double? {
@@ -478,13 +502,13 @@ public enum NetworkProbes {
         }
     }
 
-    private static func probeTCPConnectMs(host: String, port: UInt16) async -> Double? {
+    private static func probeTLSHandshakeMs(host: String, port: UInt16) async -> Double? {
         await withCheckedContinuation { continuation in
-            let queue = DispatchQueue(label: "com.strangechances.aether.tcpprobe", qos: .utility)
+            let queue = DispatchQueue(label: "com.strangechances.aether.tlsprobe", qos: .utility)
             let conn = NWConnection(
                 host: NWEndpoint.Host(host),
                 port: NWEndpoint.Port(rawValue: port)!,
-                using: .tcp
+                using: .tls
             )
             let start = CFAbsoluteTimeGetCurrent()
             final class ProbeGate: @unchecked Sendable {
@@ -524,7 +548,7 @@ public enum NetworkProbes {
                 }
             }
 
-            queue.asyncAfter(deadline: .now() + 2.0) {
+            queue.asyncAfter(deadline: .now() + 3.5) {
                 gate.finish(nil)
             }
             conn.start(queue: queue)

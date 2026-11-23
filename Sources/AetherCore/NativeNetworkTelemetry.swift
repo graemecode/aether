@@ -469,6 +469,24 @@ public enum NativeNetworkTelemetry {
         return icmpType == 0 && icmpCode == 0 && seq == expectedSequence
     }
 
+    /// Resolves a hostname (e.g. `"one.one.one.one"`) to an IPv4 address string via `getaddrinfo`.
+    /// Avoids hardcoded IPv4 literals (Apple Guideline 2.5.5 IPv6-only NAT64 compliance).
+    public static func resolveIPv4Address(hostname: String) -> String? {
+        var hints = addrinfo()
+        hints.ai_family = AF_INET
+        hints.ai_socktype = SOCK_DGRAM
+        var res: UnsafeMutablePointer<addrinfo>?
+        guard getaddrinfo(hostname, nil, &hints, &res) == 0, let first = res else { return nil }
+        defer { freeaddrinfo(first) }
+        var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+        guard getnameinfo(first.pointee.ai_addr, first.pointee.ai_addrlen, &host, socklen_t(host.count), nil, 0, NI_NUMERICHOST) == 0 else {
+            return nil
+        }
+        return host.withUnsafeBufferPointer { buf in
+            buf.baseAddress.map { String(cString: $0) }
+        }
+    }
+
     public static func icmpPingMs(ipv4Host: String, timeoutMs: Int = 800) -> Double? {
         var addr = sockaddr_in()
         addr.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)

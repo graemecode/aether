@@ -1087,7 +1087,7 @@ struct PopoverView: View {
                                   ? .system(size: 8.6, weight: .semibold, design: .monospaced)
                                   : .system(size: 10.6, weight: .semibold))
                             .foregroundColor(.white.opacity(0.92))
-                        Text(state.qualityResult?.plainEnglishVerdict ?? state.signalInsights.first?.headline ?? "Measures real throughput & bufferbloat under load")
+                        Text(state.qualityResult?.plainEnglishVerdict ?? "Measure real download, upload & bufferbloat")
                             .font(.system(size: 9.2))
                             .foregroundColor(inkDim)
                             .lineLimit(1)

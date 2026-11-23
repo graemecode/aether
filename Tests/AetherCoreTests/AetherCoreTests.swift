@@ -800,4 +800,40 @@ final class AetherCoreTests: XCTestCase {
         XCTAssertEqual(grouped[1].name, "cloudd")
         XCTAssertEqual(grouped[1].downloadBytesPerSec, 11_264, accuracy: 1.0)
     }
+
+    func testSatelliteHighLatencyNeverReportsSmoothOrReady() {
+        // Real United airplane Wi-Fi scenario: strong cabin AP (360 Mbps PHY, 39 dB SNR),
+        // fast local router (3ms), but 642ms satellite internet RTT.
+        let cabinWiFi = WiFiSnapshot(
+            powerOn: true,
+            isConnected: true,
+            ssid: "Unitedwifi.com",
+            rssi: -52,
+            noise: -91,
+            txRateMbps: 360,
+            channel: 149,
+            band: .band5,
+            channelWidthMHz: 80,
+            security: .open
+        )
+        let hops = HopHealth(routerMs: 3.2, dnsMs: 4.0, internetMs: 642.0)
+        let stab = StabilityCalculator.compute(samples: [
+            LatencySample(routerMs: 3.0, dnsMs: 4.0, internetMs: 640.0),
+            LatencySample(routerMs: 3.2, dnsMs: 4.0, internetMs: 644.0)
+        ])
+        let readiness = HumanSummary.activityReadiness(
+            wifi: cabinWiFi,
+            isWired: false,
+            hopHealth: hops,
+            stability: stab,
+            quality: nil,
+            rfPhysics: RFPhysics.compute(wifi: cabinWiFi, overlappingAPs: 0),
+            awdl: AWDLSnapshot()
+        )
+        XCTAssertEqual(readiness.count, 3)
+        XCTAssertEqual(readiness[0].status, ReadinessStatus.poor) // Video Calls -> Laggy
+        XCTAssertEqual(readiness[1].status, ReadinessStatus.poor) // 4K Video -> Slow (not fooled by 360 Mbps cabin PHY!)
+        XCTAssertEqual(readiness[2].status, ReadinessStatus.poor) // Live & Games -> Laggy
+        XCTAssertEqual(HumanSummary.humanHopLabel(ms: hops.internetMs, warn: 70, bad: 150), "Slow")
+    }
 }
