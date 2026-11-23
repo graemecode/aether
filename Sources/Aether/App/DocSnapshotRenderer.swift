@@ -9,6 +9,12 @@ import SwiftUI
 enum DocSnapshotRenderer {
     static func runIfRequested() -> Bool {
         let args = CommandLine.arguments
+        if let flagIdx = args.firstIndex(of: "--render-appstore"),
+           args.indices.contains(flagIdx + 1) {
+            let outDir = URL(fileURLWithPath: args[flagIdx + 1], isDirectory: true)
+            renderAppStorePlates(to: outDir)
+            return true
+        }
         guard let flagIdx = args.firstIndex(of: "--render-docs"),
               args.indices.contains(flagIdx + 1) else {
             return false
@@ -320,17 +326,17 @@ enum DocSnapshotRenderer {
 
     // MARK: - Offscreen Retina Rendering
 
-    private static func renderPopover(state: AppState) -> NSImage {
+    private static func renderPopover(state: AppState, scale: CGFloat = 2.0) -> NSImage {
         let view = PopoverView(state: state, onOpenStudio: {}, onQuit: {})
-        return renderSwiftUIView(view, fixedWidth: 396, fixedHeight: nil)
+        return renderSwiftUIView(view, fixedWidth: 396, fixedHeight: nil, scale: scale)
     }
 
-    private static func renderStudio(state: AppState) -> NSImage {
+    private static func renderStudio(state: AppState, scale: CGFloat = 2.0) -> NSImage {
         let view = AetherStudioView(state: state)
-        return renderSwiftUIView(view, fixedWidth: 1000, fixedHeight: 660)
+        return renderSwiftUIView(view, fixedWidth: 1000, fixedHeight: 660, scale: scale)
     }
 
-    private static func renderMenuBarIcon(state: AppState) -> NSImage {
+    private static func renderMenuBarIcon(state: AppState, scale: CGFloat = 2.0) -> NSImage {
         let mode: MenuBarDisplayMode = state.isDisconnected ? .iconOnly : .autoSpeed
         let v = MenuBarIconView(frame: NSRect(x: 0, y: 0, width: MenuBarIconView.width(for: mode), height: 22))
         v.appearance = NSAppearance(named: .darkAqua)
@@ -343,10 +349,10 @@ enum DocSnapshotRenderer {
         )
         let w = v.preferredWidth
         v.frame = NSRect(x: 0, y: 0, width: w, height: 22)
-        return snapshotNSView(v, scale: 2.0)
+        return snapshotNSView(v, scale: scale)
     }
 
-    private static func renderSwiftUIView<V: View>(_ view: V, fixedWidth: CGFloat, fixedHeight: CGFloat?) -> NSImage {
+    private static func renderSwiftUIView<V: View>(_ view: V, fixedWidth: CGFloat, fixedHeight: CGFloat?, scale: CGFloat = 2.0) -> NSImage {
         let host = NSHostingView(rootView: view)
         host.appearance = NSAppearance(named: .darkAqua)
         let h: CGFloat
@@ -372,7 +378,7 @@ enum DocSnapshotRenderer {
         RunLoop.main.run(until: Date().addingTimeInterval(0.02))
         AppState.shared.isScanningNetworks = false
         host.layoutSubtreeIfNeeded()
-        let img = snapshotNSView(host, scale: 2.0)
+        let img = snapshotNSView(host, scale: scale)
         win.orderOut(nil)
         return img
     }
@@ -435,10 +441,10 @@ enum DocSnapshotRenderer {
             ctx.drawRadialGradient(
                 grad,
                 startCenter: CGPoint(x: W * 0.5, y: H * 0.54),
-                startRadius: 40,
+                startRadius: 0,
                 endCenter: CGPoint(x: W * 0.5, y: H * 0.54),
                 endRadius: W * 0.62,
-                options: [.drawsAfterEndLocation]
+                options: [.drawsBeforeStartLocation, .drawsAfterEndLocation]
             )
         }
 
@@ -530,6 +536,494 @@ enum DocSnapshotRenderer {
 
         if let jpeg = rep.representation(using: .jpeg, properties: [.compressionFactor: 0.90]) {
             try? jpeg.write(to: url)
+        }
+    }
+
+    // MARK: - S-Tier Mac App Store Editorial Screenshots (2560×1600 Opaque sRGB PNG)
+
+    private struct AppStoreSpec: Identifiable {
+        let id = UUID()
+        let value: String
+        let label: String
+    }
+
+    private static func renderAppStorePlates(to outDir: URL) {
+        try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
+
+        NSApp.setActivationPolicy(.accessory)
+        NSApp.appearance = NSAppearance(named: .darkAqua)
+
+        let state = AppState.shared
+        state.isPopoverOpen = false
+        state.isStudioOpen = false
+        state.hasLocationAccess = true
+        state.hasDismissedOnboarding = true
+        state.isProMode = false
+        state.menuBarMode = .autoSpeed
+        state.aiDiagnosis = nil
+        state.isGeneratingBrief = false
+
+        // 01: Hero Menu Bar — Speed & Flux
+        applyHomeStudioFixture(state)
+        state.aiDiagnosis = nil
+        state.stageMode = .flux
+        state.activeTab = .speed
+        saveAppStorePopoverPlate(
+            eyebrow: "LIVE MENU BAR INSTRUMENT",
+            headline: "See your Wi-Fi\nin real time.",
+            subhead: "Signal physics, live throughput, and video-call readiness — without ever shifting your menu bar.",
+            accent: Color(red: 0.48, green: 0.86, blue: 1.0),
+            specs: [
+                AppStoreSpec(value: "28pt", label: "Fixed menu bar"),
+                AppStoreSpec(value: "0.0%", label: "Idle CPU closed"),
+                AppStoreSpec(value: "Native", label: "Swift & AppKit")
+            ],
+            card: renderPopover(state: state, scale: 3.0),
+            menuBar: renderMenuBarIcon(state: state, scale: 3.0),
+            to: outDir.appendingPathComponent("01-speed-flux.png")
+        )
+
+        // 02: Privacy & 4-Hop Route
+        applyPublicWiFiFixture(state)
+        state.aiDiagnosis = nil
+        state.stageMode = .route
+        state.activeTab = .shield
+        saveAppStorePopoverPlate(
+            eyebrow: "PRIVACY & ROUTE AUDIT",
+            headline: "Know who can see\nyou on any Wi-Fi.",
+            subhead: "Visualizes your 4-hop circuit, VPN tunnel shield, evil-twin router checks, and devices sharing your LAN.",
+            accent: Color(red: 0.28, green: 0.90, blue: 0.64),
+            specs: [
+                AppStoreSpec(value: "4-Hop", label: "Live route map"),
+                AppStoreSpec(value: "Zero", label: "Cloud telemetry"),
+                AppStoreSpec(value: "Instant", label: "Evil-twin guard")
+            ],
+            card: renderPopover(state: state, scale: 3.0),
+            menuBar: renderMenuBarIcon(state: state, scale: 3.0),
+            to: outDir.appendingPathComponent("02-privacy-route.png")
+        )
+
+        // 03: On-Device Apple Intelligence Diagnosis (Real Satellite / High-RTT Bottleneck)
+        applyOnDeviceBriefFixture(state)
+        state.stageMode = .flux
+        state.activeTab = .speed
+        saveAppStorePopoverPlate(
+            eyebrow: "ON-DEVICE APPLE INTELLIGENCE",
+            headline: "Ask your Wi-Fi\nwhat’s actually slow.",
+            subhead: "On-demand local diagnosis grounded in real ICMP latency, RF signal, and interference. Zero cloud calls.",
+            accent: Color(red: 0.62, green: 0.82, blue: 1.0),
+            specs: [
+                AppStoreSpec(value: "100%", label: "On-device model"),
+                AppStoreSpec(value: "0 bytes", label: "Sent to cloud"),
+                AppStoreSpec(value: "Honest", label: "True ICMP RTT")
+            ],
+            card: renderPopover(state: state, scale: 3.0),
+            menuBar: renderMenuBarIcon(state: state, scale: 3.0),
+            to: outDir.appendingPathComponent("03-apple-intelligence.png")
+        )
+
+        // 04: 2.4 / 5 / 6 GHz RF Channel Spectrum & Roaming
+        applySpectrumFixture(state)
+        state.aiDiagnosis = nil
+        state.stageMode = .spectrum
+        state.activeTab = .networks
+        saveAppStorePopoverPlate(
+            eyebrow: "RF CHANNEL SPECTRUM",
+            headline: "Escape crowded\nairwaves in seconds.",
+            subhead: "Live Gaussian overlap across 2.4, 5 & 6 GHz with automatic cleaner-channel guidance and 1-click roaming.",
+            accent: Color(red: 1.0, green: 0.76, blue: 0.38),
+            specs: [
+                AppStoreSpec(value: "2.4·5·6", label: "GHz spectrum"),
+                AppStoreSpec(value: "1-Click", label: "Roam to 5 GHz"),
+                AppStoreSpec(value: "Live", label: "Overlap math")
+            ],
+            card: renderPopover(state: state, scale: 3.0),
+            menuBar: renderMenuBarIcon(state: state, scale: 3.0),
+            to: outDir.appendingPathComponent("04-rf-spectrum.png")
+        )
+
+        // 05: Full-Screen Aether Studio Workbench
+        applyHomeStudioFixture(state)
+        state.aiDiagnosis = nil
+        state.isScanningNetworks = false
+        saveAppStoreStudioPlate(
+            eyebrow: "AETHER STUDIO · ⌘E",
+            headline: "Your full RF & latency workbench.",
+            subhead: "Channel spectrum, multi-hop jitter timeline, LAN devices, event log & on-device Q&A.",
+            studio: renderStudio(state: state, scale: 3.0),
+            to: outDir.appendingPathComponent("05-aether-studio.png")
+        )
+
+        // 06: Unified Offline Wi-Fi Picker
+        applyDisconnectedFixture(state)
+        state.aiDiagnosis = nil
+        state.isScanningNetworks = false
+        saveAppStorePopoverPlate(
+            eyebrow: "CRAFTED FOR MACOS",
+            headline: "Calm and fast.\nEven offline.",
+            subhead: "Instant nearby network discovery, saved profiles, and unified navigation that never traps you.",
+            accent: Color(red: 0.72, green: 0.86, blue: 1.0),
+            specs: [
+                AppStoreSpec(value: "< 1 ms", label: "Cached scan"),
+                AppStoreSpec(value: "Saved", label: "Known profiles"),
+                AppStoreSpec(value: "⌘1–4", label: "Keyboard fast")
+            ],
+            card: renderPopover(state: state, scale: 3.0),
+            menuBar: renderMenuBarIcon(state: state, scale: 3.0),
+            to: outDir.appendingPathComponent("06-wifi-picker.png")
+        )
+
+        print("Rendered 6 S-tier 2560x1600 App Store plates to \(outDir.path)")
+    }
+
+    private static func applyOnDeviceBriefFixture(_ s: AppState) {
+        applyPublicWiFiFixture(s)
+        s.hopHealth = HopHealth(routerMs: 3.2, dnsMs: 14.0, internetMs: 642.0, updatedAt: Date())
+        s.stability = StabilityMetrics(avgInternetMs: 642.0, jitterMs: 18.4, packetLossPercent: 1.2, callGrade: .choppy, verdict: "High upstream latency (642 ms)")
+        s.qualityResult = nil
+        s.activeInterfaces = [
+            ActiveInterface(bsdName: "en0", kind: .wifi, displayName: "Wi-Fi", ipAddress: "172.19.249.21"),
+            ActiveInterface(bsdName: "utun6", kind: .vpn, displayName: "VPN · Twingate", ipAddress: "100.96.0.2")
+        ]
+        s.currentThroughput = ThroughputSample(downloadBytesPerSec: 410_000, uploadBytesPerSec: 185_000)
+        s.sessionDownBytes = 411_800_000
+        s.sessionUpBytes = 148_200_000
+        s.sessionPeakBytesPerSec = 1_320_000
+        s.aiDiagnosis = NetworkDiagnosis(
+            summary: "Your cabin Wi-Fi signal is strong (38 dB SNR on 5 GHz), so the 642 ms lag is upstream over the satellite link — not your Mac.",
+            nextStep: "Twingate VPN is already encrypting your traffic; skip live video calls until you land and use async messaging instead.",
+            usedOnDeviceModel: true
+        )
+    }
+
+    private static func saveAppStorePopoverPlate(
+        eyebrow: String,
+        headline: String,
+        subhead: String,
+        accent: Color,
+        specs: [AppStoreSpec],
+        card: NSImage,
+        menuBar: NSImage,
+        to url: URL
+    ) {
+        let plate = AppStorePopoverPlateView(
+            eyebrow: eyebrow,
+            headline: headline,
+            subhead: subhead,
+            accent: accent,
+            specs: specs,
+            card: card,
+            menuBar: menuBar
+        )
+        let img = renderSwiftUIView(plate, fixedWidth: 1280, fixedHeight: 800, scale: 2.0)
+        writeOpaquePNG(img, width: 2560, height: 1600, to: url)
+    }
+
+    private static func saveAppStoreStudioPlate(
+        eyebrow: String,
+        headline: String,
+        subhead: String,
+        studio: NSImage,
+        to url: URL
+    ) {
+        let plate = AppStoreStudioPlateView(
+            eyebrow: eyebrow,
+            headline: headline,
+            subhead: subhead,
+            studio: studio
+        )
+        let img = renderSwiftUIView(plate, fixedWidth: 1280, fixedHeight: 800, scale: 2.0)
+        writeOpaquePNG(img, width: 2560, height: 1600, to: url)
+    }
+
+    /// Writes a strict opaque 24-bit sRGB PNG (no alpha channel) so App Store Connect accepts it cleanly.
+    private static func writeOpaquePNG(_ image: NSImage, width: Int, height: Int, to url: URL) {
+        let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB()
+        guard let ctx = CGContext(
+            data: nil,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+        ) else { return }
+
+        ctx.interpolationQuality = .high
+        ctx.setFillColor(CGColor(red: 0.028, green: 0.034, blue: 0.046, alpha: 1.0))
+        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+
+        NSGraphicsContext.saveGraphicsState()
+        let nsCtx = NSGraphicsContext(cgContext: ctx, flipped: false)
+        NSGraphicsContext.current = nsCtx
+        image.draw(in: NSRect(x: 0, y: 0, width: width, height: height))
+        NSGraphicsContext.restoreGraphicsState()
+
+        guard let cgImage = ctx.makeImage() else { return }
+        let rep = NSBitmapImageRep(cgImage: cgImage)
+        if let png = rep.representation(using: .png, properties: [:]) {
+            try? png.write(to: url)
+        }
+    }
+
+    private struct AppStorePopoverPlateView: View {
+        let eyebrow: String
+        let headline: String
+        let subhead: String
+        let accent: Color
+        let specs: [AppStoreSpec]
+        let card: NSImage
+        let menuBar: NSImage
+
+        var body: some View {
+            ZStack {
+                // Deep obsidian-sapphire studio backdrop
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.032, green: 0.040, blue: 0.058),
+                        Color(red: 0.020, green: 0.024, blue: 0.035)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+
+                // Atmospheric semantic glow behind the live popover
+                RadialGradient(
+                    colors: [accent.opacity(0.20), accent.opacity(0.05), Color.clear],
+                    center: UnitPoint(x: 0.72, y: 0.52),
+                    startRadius: 20,
+                    endRadius: 480
+                )
+                .blendMode(.screen)
+
+                RadialGradient(
+                    colors: [Color(red: 0.35, green: 0.55, blue: 0.90).opacity(0.10), Color.clear],
+                    center: UnitPoint(x: 0.14, y: 0.24),
+                    startRadius: 10,
+                    endRadius: 380
+                )
+                .blendMode(.screen)
+
+                // Top macOS menu bar glass strip with Aether's live menu bar icon anchored above the popover
+                VStack(spacing: 0) {
+                    ZStack {
+                        Color(red: 0.042, green: 0.049, blue: 0.066).opacity(0.92)
+                        HStack {
+                            HStack(spacing: 14) {
+                                Image(systemName: "apple.logo")
+                                    .font(.system(size: 11.5, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.75))
+                                Text("Aether")
+                                    .font(.system(size: 11.5, weight: .semibold))
+                                    .foregroundColor(.white.opacity(0.78))
+                                Text("Window")
+                                    .font(.system(size: 11.5, weight: .regular))
+                                    .foregroundColor(.white.opacity(0.42))
+                                Text("Help")
+                                    .font(.system(size: 11.5, weight: .regular))
+                                    .foregroundColor(.white.opacity(0.42))
+                            }
+                            .padding(.leading, 22)
+
+                            Spacer()
+
+                            // Live MenuBarIconView anchored directly above the popover center
+                            HStack(spacing: 14) {
+                                Image(nsImage: menuBar)
+                                    .interpolation(.high)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(height: 22)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 2)
+                                    .background(Color.white.opacity(0.11))
+                                    .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+
+                                Image(systemName: "magnifyingglass")
+                                    .font(.system(size: 10.5, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.55))
+                                Image(systemName: "switch.2")
+                                    .font(.system(size: 10.5, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.55))
+                                Text("Mon 9:41 AM")
+                                    .font(.system(size: 11.0, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.72))
+                            }
+                            .padding(.trailing, 130)
+                        }
+                    }
+                    .frame(height: 30)
+                    .overlay(alignment: .bottom) {
+                        Rectangle().fill(Color.white.opacity(0.12)).frame(height: 0.75)
+                    }
+
+                    Spacer()
+                }
+
+                // Split-Editorial Hero Layout
+                HStack(spacing: 48) {
+                    // Left Editorial Column
+                    VStack(alignment: .leading, spacing: 22) {
+                        // Eyebrow pill
+                        HStack(spacing: 7) {
+                            Circle()
+                                .fill(accent)
+                                .frame(width: 7, height: 7)
+                                .shadow(color: accent.opacity(0.8), radius: 5)
+                            Text(eyebrow)
+                                .font(.system(size: 11.0, weight: .semibold, design: .monospaced))
+                                .tracking(1.3)
+                                .foregroundColor(.white.opacity(0.86))
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.white.opacity(0.06))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color.white.opacity(0.13), lineWidth: 0.9))
+
+                        Text(headline)
+                            .font(.system(size: 52, weight: .bold))
+                            .tracking(-1.4)
+                            .lineSpacing(2)
+                            .foregroundColor(.white)
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(subhead)
+                            .font(.system(size: 18.5, weight: .regular))
+                            .lineSpacing(5)
+                            .foregroundColor(.white.opacity(0.66))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: 490, alignment: .leading)
+
+                        Spacer().frame(height: 8)
+
+                        // Micro-spec strip
+                        VStack(alignment: .leading, spacing: 14) {
+                            Rectangle()
+                                .fill(Color.white.opacity(0.10))
+                                .frame(height: 1)
+                                .frame(maxWidth: 440)
+
+                            HStack(spacing: 30) {
+                                ForEach(specs) { spec in
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(spec.value)
+                                            .font(.system(size: 18, weight: .semibold, design: .monospaced))
+                                            .foregroundColor(.white.opacity(0.95))
+                                        Text(spec.label)
+                                            .font(.system(size: 11.5, weight: .medium))
+                                            .foregroundColor(.white.opacity(0.46))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .frame(maxWidth: 530, alignment: .leading)
+                    .padding(.leading, 84)
+                    .padding(.top, 24)
+
+                    Spacer(minLength: 10)
+
+                    // Right Live MAS Popover Column
+                    let maxH: CGFloat = 716
+                    let aspect = card.size.width / max(1, card.size.height)
+                    let targetH = min(maxH, card.size.height * 1.12)
+                    let targetW = min(475, targetH * aspect)
+                    let finalH = targetW / aspect
+
+                    Image(nsImage: card)
+                        .interpolation(.high)
+                        .resizable()
+                        .frame(width: targetW, height: finalH)
+                        .shadow(color: Color.black.opacity(0.75), radius: 36, x: 0, y: 20)
+                        .padding(.trailing, 84)
+                        .padding(.top, 24)
+                }
+            }
+            .frame(width: 1280, height: 800)
+        }
+    }
+
+    private struct AppStoreStudioPlateView: View {
+        let eyebrow: String
+        let headline: String
+        let subhead: String
+        let studio: NSImage
+
+        var body: some View {
+            ZStack {
+                LinearGradient(
+                    colors: [
+                        Color(red: 0.032, green: 0.040, blue: 0.058),
+                        Color(red: 0.020, green: 0.024, blue: 0.035)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+
+                RadialGradient(
+                    colors: [Color(red: 0.30, green: 0.86, blue: 0.68).opacity(0.16), Color.clear],
+                    center: UnitPoint(x: 0.5, y: 0.62),
+                    startRadius: 40,
+                    endRadius: 560
+                )
+                .blendMode(.screen)
+
+                VStack(spacing: 18) {
+                    VStack(spacing: 6) {
+                        HStack(spacing: 6.5) {
+                            Circle()
+                                .fill(Color(red: 0.30, green: 0.90, blue: 0.66))
+                                .frame(width: 6, height: 6)
+                            Text(eyebrow)
+                                .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
+                                .tracking(1.3)
+                                .foregroundColor(.white.opacity(0.84))
+                        }
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 4.5)
+                        .background(Color.white.opacity(0.06))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color.white.opacity(0.13), lineWidth: 0.85))
+
+                        Text(headline)
+                            .font(.system(size: 36, weight: .bold))
+                            .tracking(-1.0)
+                            .foregroundColor(.white)
+
+                        Text(subhead)
+                            .font(.system(size: 14.5, weight: .regular))
+                            .foregroundColor(.white.opacity(0.64))
+                    }
+                    .padding(.top, 24)
+
+                    let studioAspect = studio.size.width / max(1, studio.size.height)
+                    let maxStudioH: CGFloat = 626
+                    let maxStudioW: CGFloat = 1120
+                    let fitH = min(maxStudioH, maxStudioW / studioAspect)
+                    let fitW = fitH * studioAspect
+
+                    Image(nsImage: studio)
+                        .interpolation(.high)
+                        .resizable()
+                        .frame(width: fitW, height: fitH)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [Color.white.opacity(0.24), Color.white.opacity(0.08), Color.white.opacity(0.14)],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    ),
+                                    lineWidth: 1.0
+                                )
+                        )
+                        .shadow(color: Color.black.opacity(0.78), radius: 40, x: 0, y: 22)
+                        .padding(.bottom, 20)
+                }
+            }
+            .frame(width: 1280, height: 800)
         }
     }
 }

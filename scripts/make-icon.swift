@@ -37,53 +37,85 @@ func renderIcon(size: Int) -> Data? {
     ctx.addPath(clipPath)
     ctx.clip()
 
-    // Midnight-slate Strange Chances radial gradient
+    // Deep anodized obsidian-sapphire backdrop with top optical depth
     let cs = CGColorSpaceCreateDeviceRGB()
-    let grad = CGGradient(
+    let bgGrad = CGGradient(
         colorsSpace: cs,
         colors: [
-            CGColor(red: 0.09, green: 0.16, blue: 0.24, alpha: 1),
-            CGColor(red: 0.040, green: 0.065, blue: 0.105, alpha: 1),
-            CGColor(red: 0.022, green: 0.032, blue: 0.052, alpha: 1)
+            CGColor(red: 0.085, green: 0.135, blue: 0.205, alpha: 1),
+            CGColor(red: 0.036, green: 0.055, blue: 0.088, alpha: 1),
+            CGColor(red: 0.016, green: 0.022, blue: 0.036, alpha: 1)
         ] as CFArray,
-        locations: [0.0, 0.56, 1.0]
+        locations: [0.0, 0.54, 1.0]
     )!
-    let center = CGPoint(x: s * 0.5, y: s * 0.5)
-    ctx.drawRadialGradient(grad, startCenter: center, startRadius: s * 0.04, endCenter: center, endRadius: s * 0.56, options: [])
+    ctx.drawRadialGradient(
+        bgGrad,
+        startCenter: CGPoint(x: s * 0.5, y: s * 0.62),
+        startRadius: 0,
+        endCenter: CGPoint(x: s * 0.5, y: s * 0.48),
+        endRadius: s * 0.58,
+        options: [.drawsBeforeStartLocation, .drawsAfterEndLocation]
+    )
+
+    // Subtle sea-glass emerald optical glow rising from the focal beacon
+    let origin = CGPoint(x: s * 0.5, y: s * 0.345)
+    let coreGlow = CGGradient(
+        colorsSpace: cs,
+        colors: [
+            CGColor(red: 0.24, green: 0.90, blue: 0.66, alpha: 0.32),
+            CGColor(red: 0.24, green: 0.90, blue: 0.66, alpha: 0.08),
+            CGColor(red: 0.24, green: 0.90, blue: 0.66, alpha: 0.0)
+        ] as CFArray,
+        locations: [0.0, 0.42, 1.0]
+    )!
+    ctx.drawRadialGradient(coreGlow, startCenter: origin, startRadius: 0, endCenter: origin, endRadius: s * 0.36, options: [.drawsBeforeStartLocation])
 
     // Subtle precision concentric RF calibration rings
-    ctx.setStrokeColor(CGColor(red: 0.78, green: 0.90, blue: 1.0, alpha: 0.13))
-    ctx.setLineWidth(max(1.0, s * 0.004))
-    ctx.strokeEllipse(in: CGRect(x: s * 0.17, y: s * 0.17, width: s * 0.66, height: s * 0.66))
-    ctx.setStrokeColor(CGColor(red: 0.78, green: 0.90, blue: 1.0, alpha: 0.08))
-    ctx.strokeEllipse(in: CGRect(x: s * 0.27, y: s * 0.27, width: s * 0.46, height: s * 0.46))
+    ctx.setStrokeColor(CGColor(red: 0.78, green: 0.90, blue: 1.0, alpha: 0.11))
+    ctx.setLineWidth(max(1.0, s * 0.0032))
+    ctx.strokeEllipse(in: CGRect(x: s * 0.175, y: s * 0.175, width: s * 0.65, height: s * 0.65))
+    ctx.setStrokeColor(CGColor(red: 0.78, green: 0.90, blue: 1.0, alpha: 0.065))
+    ctx.strokeEllipse(in: CGRect(x: s * 0.285, y: s * 0.285, width: s * 0.43, height: s * 0.43))
 
-    // Luminous precision RF wavefront arcs radiating from lower focal point
-    let origin = CGPoint(x: s * 0.5, y: s * 0.35)
+    // Luminous precision RF wavefront arcs radiating cleanly above the focal point (zero overlap!)
     let radii: [(CGFloat, CGFloat, CGFloat)] = [
-        (s * 0.13, 0.94, 0.022),
-        (s * 0.23, 0.80, 0.019),
-        (s * 0.33, 0.56, 0.016),
-        (s * 0.43, 0.28, 0.012)
+        (s * 0.135, 0.96, 0.028),
+        (s * 0.235, 0.80, 0.024),
+        (s * 0.335, 0.52, 0.020),
+        (s * 0.430, 0.24, 0.015)
     ]
     ctx.setLineCap(.round)
     for (r, alpha, lwFrac) in radii {
-        ctx.setStrokeColor(CGColor(red: 0.92, green: 0.97, blue: 1.0, alpha: alpha))
-        ctx.setLineWidth(max(1.2, s * lwFrac))
+        // Soft outer bloom pass
+        ctx.setStrokeColor(CGColor(red: 0.70, green: 0.90, blue: 1.0, alpha: alpha * 0.24))
+        ctx.setLineWidth(max(2.0, s * lwFrac * 2.1))
+        ctx.beginPath()
+        ctx.addArc(center: origin, radius: r, startAngle: .pi * 0.24, endAngle: .pi * 0.76, clockwise: false)
+        ctx.strokePath()
+
+        // Razor-sharp core arc
+        ctx.setStrokeColor(CGColor(red: 0.93, green: 0.97, blue: 1.0, alpha: alpha))
+        ctx.setLineWidth(max(1.4, s * lwFrac))
         ctx.beginPath()
         ctx.addArc(center: origin, radius: r, startAngle: .pi * 0.24, endAngle: .pi * 0.76, clockwise: false)
         ctx.strokePath()
     }
 
-    // Sea-glass emerald shield core point (Aether focal signature)
-    let dotR = s * 0.036
-    ctx.setFillColor(CGColor(red: 0.28, green: 0.90, blue: 0.66, alpha: 0.98))
+    // Sea-glass emerald focal beacon (Aether signature)
+    let dotR = s * 0.044
+    ctx.setFillColor(CGColor(red: 0.26, green: 0.92, blue: 0.66, alpha: 0.30))
+    ctx.fillEllipse(in: CGRect(x: origin.x - dotR * 1.65, y: origin.y - dotR * 1.65, width: dotR * 3.3, height: dotR * 3.3))
+    ctx.setFillColor(CGColor(red: 0.28, green: 0.92, blue: 0.66, alpha: 1.0))
     ctx.fillEllipse(in: CGRect(x: origin.x - dotR, y: origin.y - dotR, width: dotR * 2, height: dotR * 2))
+    // Tiny crisp inner specular highlight
+    let specR = dotR * 0.38
+    ctx.setFillColor(CGColor(red: 0.88, green: 1.0, blue: 0.95, alpha: 0.72))
+    ctx.fillEllipse(in: CGRect(x: origin.x - specR, y: origin.y + dotR * 0.12 - specR, width: specR * 2, height: specR * 2))
 
-    // Crisp outer rim stroke
+    // Anodized sapphire-glass outer specular rim
     ctx.addPath(clipPath)
-    ctx.setStrokeColor(CGColor(red: 0.84, green: 0.92, blue: 1.0, alpha: 0.26))
-    ctx.setLineWidth(max(1.0, s * 0.008))
+    ctx.setStrokeColor(CGColor(red: 0.84, green: 0.92, blue: 1.0, alpha: 0.28))
+    ctx.setLineWidth(max(1.2, s * 0.009))
     ctx.strokePath()
 
     NSGraphicsContext.restoreGraphicsState()
