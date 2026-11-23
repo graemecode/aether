@@ -142,6 +142,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Smoothly re-anchor panel height whenever visible content size can change
         let resizeSignals: [AnyPublisher<Void, Never>] = [
             state.$activeTab.removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
+            state.$stageMode.removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$statusBanner.removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$qualityResult.removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$topProcesses.map(\.count).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),

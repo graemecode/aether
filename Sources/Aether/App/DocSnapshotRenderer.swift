@@ -330,7 +330,7 @@ enum DocSnapshotRenderer {
     }
 
     private static func renderMenuBarIcon(state: AppState) -> NSImage {
-        let v = MenuBarIconView(frame: NSRect(x: 0, y: 0, width: 52, height: 22))
+        let v = MenuBarIconView(frame: NSRect(x: 0, y: 0, width: MenuBarIconView.iconWithSpeedWidth, height: 22))
         v.appearance = NSAppearance(named: .darkAqua)
         v.update(
             wifi: state.wifi,

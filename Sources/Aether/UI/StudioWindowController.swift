@@ -778,7 +778,7 @@ struct ChannelSpectrumCanvas: View {
             let padL: CGFloat = compact ? 10 : 24
             let padR: CGFloat = compact ? 10 : 14
             let padT: CGFloat = compact ? 42 : 18
-            let padB: CGFloat = compact ? 36 : 24
+            let padB: CGFloat = compact ? 44 : 24
             let plotW = max(10, size.width - padL - padR)
             let plotH = max(10, size.height - padT - padB)
             let baseY = padT + plotH

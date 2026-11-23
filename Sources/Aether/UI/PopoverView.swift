@@ -12,8 +12,8 @@ struct PopoverView: View {
     @State private var passwordPromptSSID: String?
     @State private var passwordInput: String = ""
     @State private var privacyDetailSection: PrivacyDetailSection = .none
-    @State private var insightIndex: Int = 0
 
+    @Namespace private var tabBarNS
     @Namespace private var trustZoneNS
     @Namespace private var dnsPresetNS
     @Namespace private var detailModeNS
@@ -75,8 +75,10 @@ struct PopoverView: View {
                     .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(Color(red: 1.0, green: 0.72, blue: 0.30).opacity(0.36), lineWidth: 1))
                 }
 
-                // 2. Relatable 4-Step Connection Health Chain (Wi-Fi › Router › Lookup › Internet)
-                hopHealthStrip
+                // 2. Relatable 4-Step Connection Health Chain (hidden when Route stage already visualizes the 4 hops)
+                if state.stageMode != .route {
+                    hopHealthStrip
+                }
 
                 // Calm Upstream-Down Diagnosis (when router responds but ISP/portal blocks internet)
                 if state.isUpstreamDown && !state.captivePortal.isDetected {
@@ -103,40 +105,67 @@ struct PopoverView: View {
                         .transition(.opacity)
                 }
 
-                // 3. Four Sculpted Circular Mode Glyphs (SPEED · PRIVACY · WI-FI · MORE)
-                HStack(spacing: 0) {
+                // 3. Quiet Architectural Segmented Tab Bar (Speed · Privacy · Wi-Fi · More)
+                HStack(spacing: 3) {
                     ForEach(PanelTab.allCases) { tab in
                         let isActive = state.activeTab == tab
+                        let badge = badgeColor(for: tab)
                         Button {
-                            withAnimation(.spring(response: 0.26, dampingFraction: 0.84)) {
+                            withAnimation(reduceMotion ? nil : .spring(response: 0.24, dampingFraction: 0.86)) {
                                 state.selectTab(tab)
                             }
                         } label: {
-                            VStack(spacing: 5) {
-                                AetherTabGlyph(
-                                    tab: tab,
-                                    isActive: isActive,
-                                    badgeColor: badgeColor(for: tab),
-                                    size: 38
-                                )
-                                Text(tab.shortLabel)
-                                    .font(.system(size: 8.4, weight: isActive ? .semibold : .regular, design: .monospaced))
+                            HStack(spacing: 5) {
+                                Image(systemName: tabSymbol(for: tab))
+                                    .font(.system(size: 10.6, weight: isActive ? .semibold : .medium))
                                     .foregroundColor(isActive ? .white : inkDim)
-                                    .tracking(0.55)
+                                Text(tabTitle(for: tab))
+                                    .font(.system(size: 10.4, weight: isActive ? .semibold : .medium))
+                                    .foregroundColor(isActive ? .white : inkDim)
+                                if let badge {
+                                    Circle()
+                                        .fill(badge)
+                                        .frame(width: 4.5, height: 4.5)
+                                }
                             }
                             .frame(maxWidth: .infinity)
+                            .frame(height: 28)
+                            .background {
+                                if isActive {
+                                    RoundedRectangle(cornerRadius: 7.5, style: .continuous)
+                                        .fill(Color.white.opacity(0.12))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 7.5, style: .continuous)
+                                                .stroke(
+                                                    LinearGradient(
+                                                        colors: [Color.white.opacity(0.24), Color.white.opacity(0.06)],
+                                                        startPoint: .top,
+                                                        endPoint: .bottom
+                                                    ),
+                                                    lineWidth: 0.85
+                                                )
+                                        )
+                                        .matchedGeometryEffect(id: "popoverTabPill", in: tabBarNS)
+                                }
+                            }
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .help("\(tab.help) (⌘\(tab.rawValue + 1))")
-                        .accessibilityLabel(tab.shortLabel)
+                        .accessibilityLabel(tabTitle(for: tab))
                         .accessibilityHint(tab.help)
                         .accessibilityAddTraits(isActive ? [.isSelected] : [])
                     }
                 }
-                .padding(.top, 1)
+                .padding(3)
+                .background(Color.white.opacity(0.036))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(hairSoft, lineWidth: 0.85)
+                )
 
-                // 4. Focused Active Instrument Card
+                // 4. Flattened Active Section (single-shell obsidian typography + hairlines, zero box-in-box fatigue)
                 activeTabCard
             }
 
@@ -250,13 +279,13 @@ struct PopoverView: View {
     private func hopCell(label: String, value: String, color: Color) -> some View {
         VStack(spacing: 1.5) {
             Text(label)
-                .font(.system(size: 7.4, weight: .semibold, design: .monospaced))
+                .font(.system(size: 8.2, weight: .semibold, design: .monospaced))
                 .foregroundColor(inkDim)
-                .tracking(0.5)
+                .tracking(0.45)
             Text(value)
                 .font(state.isProMode
-                      ? .system(size: 10.4, weight: .semibold, design: .monospaced)
-                      : .system(size: 10.6, weight: .medium))
+                      ? .system(size: 10.6, weight: .semibold, design: .monospaced)
+                      : .system(size: 10.8, weight: .medium))
                 .foregroundColor(color)
                 .monospacedDigit()
                 .contentTransition(.numericText())
@@ -784,11 +813,29 @@ struct PopoverView: View {
             )
     }
 
-    // MARK: - Active Tab Card Container
+    // MARK: - Active Tab Content (Single-Shell Architecture — No Redundant Box-in-Box Border)
+
+    private func tabTitle(for tab: PanelTab) -> String {
+        switch tab {
+        case .speed:    return "Speed"
+        case .shield:   return "Privacy"
+        case .networks: return "Wi-Fi"
+        case .tools:    return "More"
+        }
+    }
+
+    private func tabSymbol(for tab: PanelTab) -> String {
+        switch tab {
+        case .speed:    return "gauge.with.needle"
+        case .shield:   return "shield"
+        case .networks: return "wifi"
+        case .tools:    return "slider.horizontal.3"
+        }
+    }
 
     @ViewBuilder
     private var activeTabCard: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: 10) {
             switch state.activeTab {
             case .speed:
                 speedPanel
@@ -800,21 +847,9 @@ struct PopoverView: View {
                 morePanel
             }
         }
-        .padding(12)
+        .padding(.horizontal, 2)
+        .padding(.top, 2)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.036))
-        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .stroke(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.15), Color.white.opacity(0.06), Color.white.opacity(0.09)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: 1
-                )
-        )
     }
 
     // MARK: - TAB 1: SPEED (Tight, Zero-Redundancy Satie Proportions + Graceful Offline States)
@@ -1056,17 +1091,18 @@ struct PopoverView: View {
                     Button {
                         state.runQualityTest()
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 4.5) {
                             Image(systemName: state.isRunningQualityTest ? "waveform" : "bolt.fill")
-                                .font(.system(size: 8.6, weight: .semibold))
+                                .font(.system(size: 8.8, weight: .semibold))
                             Text(state.isRunningQualityTest ? "Testing…" : "Run Test")
-                                .font(.system(size: 9.6, weight: .semibold))
+                                .font(.system(size: 10.0, weight: .semibold))
                         }
-                        .foregroundColor(state.isRunningQualityTest ? .white.opacity(0.9) : .black)
+                        .foregroundColor(.white.opacity(0.95))
                         .padding(.horizontal, 11)
-                        .frame(height: 24)
-                        .background(state.isRunningQualityTest ? Color.white.opacity(0.12) : Color.white)
+                        .frame(height: 25)
+                        .background(Color.white.opacity(state.isRunningQualityTest ? 0.08 : 0.11))
                         .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color.white.opacity(0.22), lineWidth: 0.85))
                     }
                     .buttonStyle(.plain)
                     .disabled(state.isRunningQualityTest)
@@ -1106,14 +1142,14 @@ struct PopoverView: View {
                     .font(.system(size: 10.2, weight: .medium))
                     .foregroundColor(inkSoft)
             }
-            HStack(alignment: .firstTextBaseline, spacing: 3.5) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(numPart)
-                    .font(.system(size: 20.0, weight: .semibold, design: .rounded))
+                    .font(.system(size: 21.0, weight: .semibold))
                     .foregroundColor(.white)
                     .monospacedDigit()
                     .contentTransition(.numericText())
                 Text(unitPart)
-                    .font(.system(size: 10.2, weight: .medium, design: .monospaced))
+                    .font(.system(size: 10.4, weight: .medium, design: .monospaced))
                     .foregroundColor(inkDim)
             }
             .lineLimit(1)
@@ -1155,10 +1191,10 @@ struct PopoverView: View {
     private func miniStatPill(label: String, value: String, highlight: Color = .white) -> some View {
         VStack(alignment: .leading, spacing: 1.5) {
             Text(label)
-                .font(.system(size: 7.4, weight: .semibold, design: .monospaced))
+                .font(.system(size: 8.2, weight: .semibold, design: .monospaced))
                 .foregroundColor(inkDim)
             Text(value)
-                .font(.system(size: 10.4, weight: .semibold, design: .monospaced))
+                .font(.system(size: 10.6, weight: .semibold, design: .monospaced))
                 .foregroundColor(highlight)
                 .monospacedDigit()
                 .lineLimit(1)
@@ -1505,10 +1541,10 @@ struct PopoverView: View {
                     } label: {
                         HStack(spacing: 5) {
                             Text(state.channelAnalysis.congestionLabel)
-                                .font(.system(size: 7.8, weight: .semibold, design: .monospaced))
+                                .font(.system(size: 8.2, weight: .semibold, design: .monospaced))
                                 .foregroundColor(congestionColor)
-                            Text(state.channelAnalysis.recommendationSummary)
-                                .font(.system(size: 9.5))
+                            Text(state.channelAnalysis.compactSummary)
+                                .font(.system(size: 9.8))
                                 .foregroundColor(inkSoft)
                                 .lineLimit(1)
                         }

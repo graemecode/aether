@@ -77,6 +77,16 @@ public struct ChannelAnalysis: Sendable, Equatable {
         self.roamingNudge = roamingNudge
     }
 
+    public var compactSummary: String {
+        if let best = recommendedChannel, recommendationSummary.contains("is cleaner") {
+            let parts = recommendationSummary.components(separatedBy: " · ")
+            if let chPrefix = parts.first?.components(separatedBy: " has ").first {
+                return "\(chPrefix) · \(overlappingCount) overlap · Ch \(best) cleaner"
+            }
+        }
+        return recommendationSummary
+    }
+
     public func lobes(for band: WiFiBand) -> [ChannelLobe] {
         switch band {
         case .band24:  return lobes24GHz

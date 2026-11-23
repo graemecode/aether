@@ -168,38 +168,39 @@ struct InstrumentStageView: View {
                 HStack(alignment: .bottom) {
                     if !(isHovering || peekSwitcher) {
                         if state.stageMode == .flux {
-                            HStack(spacing: 11) {
-                                HStack(spacing: 4.5) {
-                                    Circle()
-                                        .fill(Color(red: 0.72, green: 0.90, blue: 1.0))
-                                        .frame(width: 5, height: 5)
-                                    Text("↓ \(ByteRateFormatter.menuBar(state.currentThroughput.downloadBytesPerSec))")
-                                        .font(.system(size: 9.4, weight: .semibold, design: .monospaced))
-                                        .foregroundColor(.white.opacity(0.95))
-                                        .monospacedDigit()
-                                        .contentTransition(.numericText())
-                                }
-                                HStack(spacing: 4.5) {
-                                    Circle()
-                                        .fill(Color(red: 1.0, green: 0.76, blue: 0.44))
-                                        .frame(width: 5, height: 5)
-                                    Text("↑ \(ByteRateFormatter.menuBar(state.currentThroughput.uploadBytesPerSec))")
-                                        .font(.system(size: 9.4, weight: .semibold, design: .monospaced))
-                                        .foregroundColor(.white.opacity(0.92))
-                                        .monospacedDigit()
-                                        .contentTransition(.numericText())
-                                }
-                            }
-                            .lineLimit(1)
-
-                            Spacer(minLength: 6)
-
-                            if state.sessionPeakBytesPerSec >= 1_024 {
-                                Text("PEAK \(ByteRateFormatter.menuBar(state.sessionPeakBytesPerSec))")
-                                    .font(.system(size: 7.8, weight: .medium, design: .monospaced))
+                            if state.activeTab == .speed {
+                                // Speed tab owns Download/Upload/Peak right below — keep Flux stage pure & zero-duplication
+                                Text(fluxLinkCaption)
+                                    .font(.system(size: 8.4, weight: .medium, design: .monospaced))
                                     .foregroundColor(inkDim)
-                                    .monospacedDigit()
+                                    .tracking(0.35)
                                     .lineLimit(1)
+                                Spacer()
+                            } else {
+                                HStack(spacing: 11) {
+                                    HStack(spacing: 4.5) {
+                                        Circle()
+                                            .fill(Color(red: 0.72, green: 0.90, blue: 1.0))
+                                            .frame(width: 5, height: 5)
+                                        Text("↓ \(ByteRateFormatter.menuBar(state.currentThroughput.downloadBytesPerSec))")
+                                            .font(.system(size: 9.2, weight: .semibold, design: .monospaced))
+                                            .foregroundColor(.white.opacity(0.92))
+                                            .monospacedDigit()
+                                            .contentTransition(.numericText())
+                                    }
+                                    HStack(spacing: 4.5) {
+                                        Circle()
+                                            .fill(Color(red: 1.0, green: 0.76, blue: 0.44))
+                                            .frame(width: 5, height: 5)
+                                        Text("↑ \(ByteRateFormatter.menuBar(state.currentThroughput.uploadBytesPerSec))")
+                                            .font(.system(size: 9.2, weight: .semibold, design: .monospaced))
+                                            .foregroundColor(.white.opacity(0.88))
+                                            .monospacedDigit()
+                                            .contentTransition(.numericText())
+                                    }
+                                }
+                                .lineLimit(1)
+                                Spacer(minLength: 6)
                             }
                         } else {
                             Text(stageFooterReadout)
@@ -609,6 +610,20 @@ struct InstrumentStageView: View {
             guard !Task.isCancelled else { return }
             peekSwitcher = false
         }
+    }
+
+    private var fluxLinkCaption: String {
+        if state.wifi.isConnected {
+            let phy = Int(round(state.wifi.txRateMbps))
+            if phy > 0 {
+                return "LINK \(phy) MBPS · \(state.wifi.snr) DB SNR · CH \(state.wifi.channel)"
+            }
+            return "\(state.wifi.snr) DB SNR · CH \(state.wifi.channel)"
+        }
+        if state.isWired {
+            return "WIRED ETHERNET · LIVE FLUX"
+        }
+        return "LIVE FLUX"
     }
 
     private var stageFooterReadout: String {
