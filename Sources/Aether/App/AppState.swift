@@ -92,9 +92,7 @@ final class AppState: ObservableObject {
     @Published var isRequestingLocation = false
     @Published var didAttemptLocationPrompt = false
     @Published var activeTab: PanelTab = .speed
-    @Published var stageMode: StageMode = .flux {
-        didSet { store.stageMode = stageMode }
-    }
+    @Published var stageMode: StageMode = .flux
     @Published var menuBarMode: MenuBarDisplayMode = .autoSpeed {
         didSet {
             store.menuBarMode = menuBarMode
@@ -147,6 +145,7 @@ final class AppState: ObservableObject {
     private var fastTickCount = 0
     private var internalThroughputRing: [ThroughputSample] = []
     private var latestWiFiCache = WiFiSnapshot()
+    private var userPinnedStageMode = false
     private var lastScanDate: Date?
     private let scanFreshnessInterval: TimeInterval = 12.0
 
@@ -550,6 +549,8 @@ final class AppState: ObservableObject {
             qualityResult = nil
             qrSharePayload = nil
             qrShareSSID = nil
+            aiDiagnosis = nil
+            userPinnedStageMode = false
         }
         lastNetworkIdentifierKey = netKey
         if isDisconnected {
@@ -649,6 +650,17 @@ final class AppState: ObservableObject {
                     severity: .caution
                 )
             }
+        }
+        syncSmartStageMode()
+    }
+
+    /// Leads automatically with the 4-hop Route visual when a hop degrades (DaisyDisk-style instant diagnosis),
+    /// while strictly respecting any stage mode the user explicitly picked on this network.
+    private func syncSmartStageMode() {
+        guard !userPinnedStageMode, !isDisconnected else { return }
+        let desired: StageMode = connectionVerdict.prefersRouteStage ? .route : store.stageMode
+        if stageMode != desired {
+            stageMode = desired
         }
     }
 
@@ -814,10 +826,17 @@ final class AppState: ObservableObject {
         onRequestPanelResize?()
     }
 
+    func setStageModeByUser(_ mode: StageMode) {
+        userPinnedStageMode = true
+        stageMode = mode
+        store.stageMode = mode
+        performHaptic()
+    }
+
     func cycleStageMode() {
         let all = StageMode.allCases
-        stageMode = all[(stageMode.rawValue + 1) % all.count]
-        performHaptic()
+        let next = all[(stageMode.rawValue + 1) % all.count]
+        setStageModeByUser(next)
     }
 
     func toggleWiFiPower() {
@@ -1285,6 +1304,19 @@ final class AppState: ObservableObject {
             parts.append(vpn.name.uppercased())
         }
         return parts.joined(separator: " · ")
+    }
+
+    var connectionVerdict: ConnectionVerdict {
+        HumanSummary.connectionVerdict(
+            wifi: wifi,
+            isWired: isWired,
+            hopHealth: hopHealth,
+            stability: stability,
+            channelAnalysis: channelAnalysis,
+            captivePortal: captivePortal,
+            quality: qualityResult,
+            activeVPN: activeVPN
+        )
     }
 
     var activityReadiness: [ActivityReadinessItem] {

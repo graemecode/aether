@@ -993,4 +993,97 @@ final class AetherCoreTests: XCTestCase {
         )
         XCTAssertEqual(timeout, .timedOut(ssid: "iPhone (38)"))
     }
+
+    func testConnectionVerdictAcrossFiveCanonicalNetworkScenarios() {
+        let strong5G = WiFiSnapshot(
+            powerOn: true, isConnected: true, ssid: "Studio 5G",
+            rssi: -46, noise: -91, txRateMbps: 866,
+            channel: 149, band: .band5, channelWidthMHz: 80, security: .wpa3Personal
+        )
+        let vpn = VPNService(uuid: "1", name: "Twingate", bundleID: "com.twingate.macos", status: "Connected")
+
+        // 1. Healthy home network -> calm OK verdict, does not force Route stage
+        let healthy = HumanSummary.connectionVerdict(
+            wifi: strong5G,
+            isWired: false,
+            hopHealth: HopHealth(routerMs: 1.8, dnsMs: 9.4, internetMs: 16.2),
+            stability: StabilityMetrics(avgInternetMs: 16.2, jitterMs: 1.1, packetLossPercent: 0, callGrade: .solid, verdict: "Solid"),
+            channelAnalysis: ChannelAnalysis(),
+            captivePortal: .clear,
+            quality: nil,
+            activeVPN: nil
+        )
+        XCTAssertEqual(healthy.severity, .ok)
+        XCTAssertFalse(healthy.prefersRouteStage)
+        XCTAssertTrue(healthy.headline.contains("16 ms"))
+
+        // 2. Airplane / satellite Wi-Fi (strong local Wi-Fi + 3 ms router + 642 ms internet)
+        let airplane = HumanSummary.connectionVerdict(
+            wifi: strong5G,
+            isWired: false,
+            hopHealth: HopHealth(routerMs: 3.2, dnsMs: 14.0, internetMs: 642.0),
+            stability: StabilityMetrics(avgInternetMs: 642.0, jitterMs: 18.0, packetLossPercent: 1.0, callGrade: .choppy, verdict: "High RTT"),
+            channelAnalysis: ChannelAnalysis(),
+            captivePortal: .clear,
+            quality: nil,
+            activeVPN: vpn
+        )
+        XCTAssertEqual(airplane.severity, .alert)
+        XCTAssertTrue(airplane.prefersRouteStage)
+        XCTAssertTrue(airplane.headline.contains("Strong Wi-Fi"))
+        XCTAssertTrue(airplane.headline.contains("642 ms"))
+        XCTAssertTrue(airplane.detail.contains("Twingate"))
+
+        // 3. Crowded café 2.4 GHz with 5 GHz sibling available
+        let crowded24 = WiFiSnapshot(
+            powerOn: true, isConnected: true, ssid: "Cafe-WiFi",
+            rssi: -60, noise: -90, txRateMbps: 144,
+            channel: 6, band: .band24, channelWidthMHz: 20, security: .wpa2Personal
+        )
+        let roamNudge = RoamingRecommendation(ssid: "Cafe-WiFi", targetBand: .band5, targetChannel: 149, targetRSSI: -54, reason: "5 GHz available")
+        let cafeAnalysis = ChannelAnalysis(overlappingCount: 4, congestionLabel: "CROWDED", roamingNudge: roamNudge)
+        let cafe = HumanSummary.connectionVerdict(
+            wifi: crowded24,
+            isWired: false,
+            hopHealth: HopHealth(routerMs: 4.5, dnsMs: 15.0, internetMs: 24.0),
+            stability: StabilityMetrics(avgInternetMs: 24.0, jitterMs: 3.0, packetLossPercent: 0, callGrade: .solid, verdict: "Solid"),
+            channelAnalysis: cafeAnalysis,
+            captivePortal: .clear,
+            quality: nil,
+            activeVPN: nil
+        )
+        XCTAssertEqual(cafe.severity, .caution)
+        XCTAssertEqual(cafe.action, .switchBand(ssid: "Cafe-WiFi", targetBand: "5G"))
+
+        // 4. Hotel captive portal
+        let portal = HumanSummary.connectionVerdict(
+            wifi: strong5G,
+            isWired: false,
+            hopHealth: HopHealth(routerMs: 2.5, dnsMs: nil, internetMs: nil),
+            stability: StabilityMetrics(),
+            channelAnalysis: ChannelAnalysis(),
+            captivePortal: .detected(loginURL: "http://captive.apple.com"),
+            quality: nil,
+            activeVPN: nil
+        )
+        XCTAssertEqual(portal.action, .signIn)
+        XCTAssertTrue(portal.prefersRouteStage)
+        XCTAssertTrue(portal.headline.lowercased().contains("sign-in"))
+
+        // 5. Ambiguous / un-isolated lag (both router 52 ms and internet 185 ms -> honestly admits it can't isolate)
+        let ambiguous = HumanSummary.connectionVerdict(
+            wifi: strong5G,
+            isWired: false,
+            hopHealth: HopHealth(routerMs: 52.0, dnsMs: 70.0, internetMs: 185.0),
+            stability: StabilityMetrics(avgInternetMs: 185.0, jitterMs: 12.0, packetLossPercent: 0, callGrade: .fair, verdict: "Fair"),
+            channelAnalysis: ChannelAnalysis(),
+            captivePortal: .clear,
+            quality: nil,
+            activeVPN: nil
+        )
+        XCTAssertEqual(ambiguous.severity, .caution)
+        XCTAssertEqual(ambiguous.action, .runTest)
+        XCTAssertTrue(ambiguous.prefersRouteStage)
+        XCTAssertTrue(ambiguous.detail.lowercased().contains("couldn't isolate"))
+    }
 }

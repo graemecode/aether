@@ -28,60 +28,18 @@ struct PopoverView: View {
     private let inkDim = Color.white.opacity(0.45)
 
     var body: some View {
-        VStack(spacing: 12) {
-            // 1. Full-Bleed OLED Instrument Stage (FLUX / SPECTRUM / ROUTE) + Power + ↗ Studio Expand
-            // Always visible whether connected or disconnected so switching networks never collapses or traps the UI.
+        VStack(spacing: 10) {
+            // 1. Full-Bleed OLED Instrument Stage (ROUTE auto-leads on degraded hops; FLUX / SPECTRUM / ROUTE on tap)
             InstrumentStageView(state: state, onOpenStudio: onOpenStudio)
 
-            // Captive Portal Alert Bar (only shown when intercepted by hotel/airport portal)
-            if state.captivePortal.isDetected {
-                HStack(spacing: 8) {
-                    Circle()
-                        .fill(Color(red: 1.0, green: 0.72, blue: 0.30))
-                        .frame(width: 6, height: 6)
-                        .shadow(color: Color(red: 1.0, green: 0.72, blue: 0.30).opacity(0.7), radius: 3)
-                    Text("Wi-Fi sign-in required")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(.white.opacity(0.95))
-                    Spacer()
-                    Button("Sign In") { state.openCaptivePortal() }
-                        .font(.system(size: 9.6, weight: .semibold))
-                        .foregroundColor(.black)
-                        .padding(.horizontal, 10)
-                        .frame(height: 22)
-                        .background(Color.white)
-                        .clipShape(Capsule())
-                        .buttonStyle(.plain)
-                }
-                .padding(.horizontal, 11)
-                .frame(height: 34)
-                .background(Color(red: 1.0, green: 0.72, blue: 0.30).opacity(0.14))
-                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(Color(red: 1.0, green: 0.72, blue: 0.30).opacity(0.36), lineWidth: 1))
+            // 2. Single Authoritative First-Screen Verdict (one clear answer right below the visual)
+            if !state.isDisconnected {
+                verdictCard
             }
 
-            // 2. Relatable 4-Step Connection Health Chain (hidden while disconnected or when Route stage already shows the 4 hops)
+            // 3. Compact 4-Step Connection Health Chain (hidden while disconnected or when Route stage already visualizes all 4 hops)
             if !state.isDisconnected && state.stageMode != .route {
                 hopHealthStrip
-            }
-
-            // Calm Upstream-Down Diagnosis (when router responds but ISP/portal blocks internet)
-            if state.isUpstreamDown && !state.captivePortal.isDetected {
-                HStack(spacing: 8) {
-                    Circle().fill(Color(red: 1.0, green: 0.72, blue: 0.30)).frame(width: 5.5, height: 5.5)
-                    Text("Router is up, but internet isn't responding")
-                        .font(.system(size: 10.0, weight: .medium))
-                        .foregroundColor(.white.opacity(0.9))
-                        .lineLimit(1)
-                    Spacer()
-                    Button("Check Sign-In") { state.checkCaptivePortalManually() }
-                        .buttonStyle(AetherHairlineButtonStyle())
-                }
-                .padding(.horizontal, 10)
-                .frame(height: 32)
-                .background(Color(red: 1.0, green: 0.72, blue: 0.30).opacity(0.10))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(Color(red: 1.0, green: 0.72, blue: 0.30).opacity(0.28), lineWidth: 1))
             }
 
             // One-Time Calm Setup Strip (disappears permanently on dismiss or once Location is granted)
@@ -220,14 +178,207 @@ struct PopoverView: View {
         }
     }
 
+    // MARK: - Single Authoritative First-Screen Verdict Card
+
+    private var verdictCard: some View {
+        let verdict = state.connectionVerdict
+        let accent = auditColor(verdict.severity)
+
+        return VStack(alignment: .leading, spacing: 7) {
+            VStack(alignment: .leading, spacing: 2.5) {
+                HStack(alignment: .center, spacing: 6) {
+                    Text(verdict.headline)
+                        .font(.system(size: 11.4, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.96))
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 4)
+                    verdictActionButton(for: verdict.action)
+                }
+
+                Text(verdict.detail)
+                    .font(.system(size: 9.8, weight: .regular))
+                    .foregroundColor(inkSoft)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.leading, 9)
+            .overlay(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(accent.opacity(0.9))
+                    .frame(width: 2.4)
+                    .padding(.vertical, 1.5)
+            }
+
+            if state.isGeneratingBrief {
+                IndeterminateShimmerBar()
+                    .frame(height: 2.5)
+            } else if let brief = state.aiDiagnosis {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 8.2, weight: .semibold))
+                            .foregroundColor(Color(red: 0.72, green: 0.90, blue: 1.0))
+                        Text(brief.usedOnDeviceModel ? "ON-DEVICE BRIEF" : "LOCAL BRIEF")
+                            .font(.system(size: 7.8, weight: .semibold, design: .monospaced))
+                            .foregroundColor(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.9))
+                            .tracking(0.5)
+                        Spacer()
+                        Button {
+                            state.generateLocalBrief()
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.system(size: 8.8, weight: .medium))
+                                .foregroundColor(inkDim)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Refresh diagnosis")
+
+                        Button {
+                            state.dismissLocalBrief()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 8.6, weight: .semibold))
+                                .foregroundColor(inkDim)
+                        }
+                        .buttonStyle(.plain)
+                        .help("Dismiss")
+                    }
+
+                    Text(brief.summary)
+                        .font(.system(size: 10.4, weight: .medium))
+                        .foregroundColor(.white.opacity(0.95))
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Text(brief.nextStep)
+                        .font(.system(size: 9.4))
+                        .foregroundColor(inkSoft)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.horizontal, 9)
+                .padding(.vertical, 7.5)
+                .background(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.06))
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.22), lineWidth: 0.85)
+                )
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8.5)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            verdict.severity == .alert
+                ? Color(red: 1.0, green: 0.42, blue: 0.38).opacity(0.08)
+                : (verdict.severity == .caution
+                   ? Color(red: 1.0, green: 0.74, blue: 0.34).opacity(0.07)
+                   : Color.white.opacity(0.036))
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(
+                    verdict.severity == .alert
+                        ? Color(red: 1.0, green: 0.42, blue: 0.38).opacity(0.28)
+                        : (verdict.severity == .caution
+                           ? Color(red: 1.0, green: 0.74, blue: 0.34).opacity(0.24)
+                           : hairSoft),
+                    lineWidth: 0.9
+                )
+        )
+        .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder
+    private func verdictActionButton(for action: VerdictAction) -> some View {
+        switch action {
+        case .signIn:
+            Button("Sign In") { state.openCaptivePortal() }
+                .font(.system(size: 9.4, weight: .semibold))
+                .foregroundColor(.black)
+                .padding(.horizontal, 10)
+                .frame(height: 22)
+                .background(Color.white)
+                .clipShape(Capsule())
+                .buttonStyle(.plain)
+        case .checkSignIn:
+            Button("Check Sign-In") { state.checkCaptivePortalManually() }
+                .font(.system(size: 9.2, weight: .semibold))
+                .foregroundColor(.white.opacity(0.92))
+                .padding(.horizontal, 9)
+                .frame(height: 22)
+                .background(Color.white.opacity(0.11))
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(Color.white.opacity(0.22), lineWidth: 0.8))
+                .buttonStyle(.plain)
+        case .switchBand(_, let targetBand):
+            Button(state.isRoaming ? "Switching…" : "Switch \(targetBand)") {
+                state.roamToBetterAP()
+            }
+            .font(.system(size: 9.4, weight: .semibold))
+            .foregroundColor(.black)
+            .padding(.horizontal, 10)
+            .frame(height: 22)
+            .background(Color.white)
+            .clipShape(Capsule())
+            .buttonStyle(.plain)
+            .disabled(state.isRoaming)
+        case .runTest:
+            Button(state.isRunningQualityTest ? "Testing…" : "Run Test") {
+                state.runQualityTest()
+            }
+            .font(.system(size: 9.2, weight: .semibold))
+            .foregroundColor(.white.opacity(0.94))
+            .padding(.horizontal, 9)
+            .frame(height: 22)
+            .background(Color.white.opacity(0.11))
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(Color.white.opacity(0.22), lineWidth: 0.8))
+            .buttonStyle(.plain)
+            .disabled(state.isRunningQualityTest)
+        case .none:
+            Button {
+                if state.aiDiagnosis != nil && !state.isGeneratingBrief {
+                    state.dismissLocalBrief()
+                } else {
+                    state.generateLocalBrief()
+                }
+            } label: {
+                HStack(spacing: 3) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 8.2, weight: .semibold))
+                    Text(state.isGeneratingBrief ? "…" : "Brief")
+                        .font(.system(size: 9.2, weight: .semibold))
+                }
+                .foregroundColor(state.aiDiagnosis != nil ? Color(red: 0.72, green: 0.90, blue: 1.0) : .white.opacity(0.86))
+                .padding(.horizontal, 8.5)
+                .frame(height: 22)
+                .background(Color.white.opacity(state.aiDiagnosis != nil ? 0.13 : 0.065))
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule().stroke(
+                        state.aiDiagnosis != nil
+                            ? Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.35)
+                            : Color.white.opacity(0.14),
+                        lineWidth: 0.8
+                    )
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(state.isGeneratingBrief)
+            .help(state.isOnDeviceAIAvailable
+                  ? "On-device Apple Intelligence diagnosis (100% local)"
+                  : "Instant local Wi-Fi diagnosis")
+        }
+    }
+
     // MARK: - 4-Step Human Connection Chain
 
     private var hopHealthStrip: some View {
         HoverSurfaceButton {
             withAnimation(.easeInOut(duration: 0.2)) {
-                state.stageMode = .route
+                state.setStageModeByUser(.route)
             }
-            state.performHaptic()
         } content: {
             HStack(spacing: 0) {
                 hopCell(
@@ -903,163 +1054,47 @@ struct PopoverView: View {
 
             Divider().background(hairSoft)
 
-            // 4. Compact Activity Readiness Strip (Video Calls · 4K Video · Live & Games)
-            HStack(spacing: 6) {
-                ForEach(state.activityReadiness) { item in
-                    let accent = readinessColor(item.status)
-                    VStack(alignment: .leading, spacing: 2.5) {
-                        HStack(spacing: 4) {
-                            Image(systemName: readinessIcon(for: item.id))
-                                .font(.system(size: 8.4, weight: .semibold))
-                                .foregroundColor(accent)
-                            Text(item.activity)
-                                .font(.system(size: 8.6, weight: .medium))
+            // 4. Compact Speed & Call Test Strip (results appear cleanly when run)
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(state.isProMode ? "RESPONSIVENESS & SPEED" : "Speed & Call Test")
+                            .font(state.isProMode
+                                  ? .system(size: 8.6, weight: .semibold, design: .monospaced)
+                                  : .system(size: 10.6, weight: .semibold))
+                            .foregroundColor(.white.opacity(0.92))
+                        if let verdict = state.qualityResult?.plainEnglishVerdict {
+                            Text(verdict)
+                                .font(.system(size: 9.2))
+                                .foregroundColor(inkDim)
+                                .fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            Text("Measure download, upload & bufferbloat")
+                                .font(.system(size: 9.2))
                                 .foregroundColor(inkDim)
                                 .lineLimit(1)
                         }
-                        Text(item.verdict)
-                            .font(.system(size: 11.0, weight: .semibold))
-                            .foregroundColor(.white.opacity(0.95))
-                            .lineLimit(1)
                     }
-                    .padding(.horizontal, 8.5)
-                    .padding(.vertical, 6)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.white.opacity(0.028))
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).stroke(accent.opacity(0.14), lineWidth: 0.85))
-                    .help(item.detail)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(item.activity)
-                    .accessibilityValue("\(item.verdict). \(item.detail)")
-                }
-            }
-
-            // 5. Sleek Speed & Call Test Strip (full-width verdict caption — zero truncation!)
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 8) {
-                    Text(state.isProMode ? "RESPONSIVENESS & SPEED" : "Speed & Call Test")
-                        .font(state.isProMode
-                              ? .system(size: 8.6, weight: .semibold, design: .monospaced)
-                              : .system(size: 10.6, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.92))
                     Spacer(minLength: 4)
-                    HStack(spacing: 5.5) {
-                        Button {
-                            if state.aiDiagnosis != nil && !state.isGeneratingBrief {
-                                state.dismissLocalBrief()
-                            } else {
-                                state.generateLocalBrief()
-                            }
-                        } label: {
-                            HStack(spacing: 3.5) {
-                                Image(systemName: "sparkles")
-                                    .font(.system(size: 8.6, weight: .semibold))
-                                Text(state.isGeneratingBrief ? "…" : "Brief")
-                                    .font(.system(size: 9.8, weight: .semibold))
-                            }
-                            .foregroundColor(state.aiDiagnosis != nil ? Color(red: 0.72, green: 0.90, blue: 1.0) : .white.opacity(0.88))
-                            .padding(.horizontal, 9.5)
-                            .frame(height: 24)
-                            .background(Color.white.opacity(state.aiDiagnosis != nil ? 0.13 : 0.06))
-                            .clipShape(Capsule())
-                            .overlay(
-                                Capsule().stroke(
-                                    state.aiDiagnosis != nil
-                                        ? Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.35)
-                                        : Color.white.opacity(0.14),
-                                    lineWidth: 0.85
-                                )
-                            )
+                    Button {
+                        state.runQualityTest()
+                    } label: {
+                        HStack(spacing: 4.5) {
+                            Image(systemName: state.isRunningQualityTest ? "waveform" : "bolt.fill")
+                                .font(.system(size: 8.8, weight: .semibold))
+                            Text(state.isRunningQualityTest ? "Testing…" : "Run Test")
+                                .font(.system(size: 10.0, weight: .semibold))
                         }
-                        .buttonStyle(.plain)
-                        .disabled(state.isGeneratingBrief)
-                        .help(state.isOnDeviceAIAvailable
-                              ? "On-device Apple Intelligence Wi-Fi diagnosis (100% local)"
-                              : "Instant local Wi-Fi diagnosis")
-
-                        Button {
-                            state.runQualityTest()
-                        } label: {
-                            HStack(spacing: 4.5) {
-                                Image(systemName: state.isRunningQualityTest ? "waveform" : "bolt.fill")
-                                    .font(.system(size: 8.8, weight: .semibold))
-                                Text(state.isRunningQualityTest ? "Testing…" : "Run Test")
-                                    .font(.system(size: 10.0, weight: .semibold))
-                            }
-                            .foregroundColor(.white.opacity(0.95))
-                            .padding(.horizontal, 10.5)
-                            .frame(height: 24)
-                            .background(Color.white.opacity(state.isRunningQualityTest ? 0.08 : 0.11))
-                            .clipShape(Capsule())
-                            .overlay(Capsule().stroke(Color.white.opacity(0.22), lineWidth: 0.85))
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(state.isRunningQualityTest)
-                        .help("Run Apple networkQuality speed & responsiveness test (Space)")
+                        .foregroundColor(.white.opacity(0.95))
+                        .padding(.horizontal, 10.5)
+                        .frame(height: 24)
+                        .background(Color.white.opacity(state.isRunningQualityTest ? 0.08 : 0.11))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color.white.opacity(0.22), lineWidth: 0.85))
                     }
-                }
-
-                if let verdict = state.qualityResult?.plainEnglishVerdict {
-                    Text(verdict)
-                        .font(.system(size: 9.4))
-                        .foregroundColor(inkDim)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                if state.isGeneratingBrief {
-                    IndeterminateShimmerBar()
-                        .frame(height: 2.5)
-                } else if let brief = state.aiDiagnosis {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 5) {
-                            Image(systemName: "sparkles")
-                                .font(.system(size: 8.2, weight: .semibold))
-                                .foregroundColor(Color(red: 0.72, green: 0.90, blue: 1.0))
-                            Text(brief.usedOnDeviceModel ? "ON-DEVICE BRIEF" : "LOCAL BRIEF")
-                                .font(.system(size: 8.0, weight: .semibold, design: .monospaced))
-                                .foregroundColor(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.9))
-                                .tracking(0.5)
-                            Spacer()
-                            Button {
-                                state.generateLocalBrief()
-                            } label: {
-                                Image(systemName: "arrow.clockwise")
-                                    .font(.system(size: 9.0, weight: .medium))
-                                    .foregroundColor(inkDim)
-                            }
-                            .buttonStyle(.plain)
-                            .help("Refresh diagnosis")
-
-                            Button {
-                                state.dismissLocalBrief()
-                            } label: {
-                                Image(systemName: "xmark")
-                                    .font(.system(size: 8.8, weight: .semibold))
-                                    .foregroundColor(inkDim)
-                            }
-                            .buttonStyle(.plain)
-                            .help("Dismiss")
-                        }
-
-                        Text(brief.summary)
-                            .font(.system(size: 10.6, weight: .medium))
-                            .foregroundColor(.white.opacity(0.95))
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        Text(brief.nextStep)
-                            .font(.system(size: 9.6))
-                            .foregroundColor(inkSoft)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .background(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.06))
-                    .clipShape(RoundedRectangle(cornerRadius: 8.5, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8.5, style: .continuous)
-                            .stroke(Color(red: 0.72, green: 0.90, blue: 1.0).opacity(0.22), lineWidth: 0.85)
-                    )
+                    .buttonStyle(.plain)
+                    .disabled(state.isRunningQualityTest)
+                    .help("Run speed & responsiveness test (Space)")
                 }
 
                 if state.isRunningQualityTest {
@@ -1465,7 +1500,7 @@ struct PopoverView: View {
                 locationPermissionCard(compact: true)
             }
 
-            if let roam = state.channelAnalysis.roamingNudge {
+            if let roam = state.channelAnalysis.roamingNudge, !verdictShowsSwitchBand {
                 HStack(spacing: 8) {
                     Circle().fill(Color(red: 1.0, green: 0.76, blue: 0.36)).frame(width: 6, height: 6)
                     Text("Faster \(roam.targetBand.rawValue) signal available for \(roam.ssid)")
@@ -1493,8 +1528,7 @@ struct PopoverView: View {
             if state.wifi.isConnected {
                 HStack(spacing: 6) {
                     Button {
-                        state.stageMode = .spectrum
-                        state.performHaptic()
+                        state.setStageModeByUser(.spectrum)
                     } label: {
                         HStack(spacing: 5) {
                             Text(state.channelAnalysis.congestionLabel)
@@ -1893,6 +1927,11 @@ struct PopoverView: View {
         passwordPromptSSID = nil
         passwordInput = ""
         Task { await state.connectToNetwork(ssid: ssid, password: pw) }
+    }
+
+    private var verdictShowsSwitchBand: Bool {
+        if case .switchBand = state.connectionVerdict.action { return true }
+        return false
     }
 
     private func readinessIcon(for id: String) -> String {

@@ -84,12 +84,12 @@ Initial Mac App Store release of Aether — live Wi-Fi signal physics, multi-hop
 
 Upload all 6 in exact numbered order into **macOS App → Previews and Screenshots** (every image is rendered natively from the `-D APP_STORE` sandboxed target so it matches the submitted binary 1:1):
 
-1. `01-speed-flux.png` — **Hero:** *See your Wi-Fi in real time.* (Menu bar `28pt` icon + Speed tab + Flux ribbons + responsiveness results)
-2. `02-privacy-route.png` — **Privacy:** *Know who can see you on any Wi-Fi.* (4-hop Route circuit + VPN shield + 3-actor privacy breakdown)
-3. `03-apple-intelligence.png` — **On-Device AI:** *Ask your Wi-Fi what’s actually slow.* (`✦ ON-DEVICE BRIEF` diagnosing true `642 ms` satellite RTT)
-4. `04-rf-spectrum.png` — **RF Spectrum:** *Escape crowded airwaves in seconds.* (Gaussian channel overlap + 1-click 5 GHz roaming nudge)
-5. `05-aether-studio.png` — **Workbench:** *Your full RF & latency workbench.* (Full-screen Aether Studio with spectrum, jitter graph, LAN devices & `Ask Aether`)
-6. `06-wifi-picker.png` — **Offline Craft:** *Calm and fast. Even offline.* (Unified disconnected Wi-Fi picker with all 4 tabs intact)
+1. `01-instant-verdict.png` — **Hero Showstopper:** *Know why your Wi-Fi feels slow.* (Auto-surfaced 4-hop Route circuit showing `Fast → Fast → 642 ms` + top Verdict Card separating strong cabin Wi-Fi from slow satellite upstream)
+2. `02-speed-flux.png` — **Live Telemetry:** *See your Wi-Fi in real time.* (Menu bar `28pt` icon + `Fast and steady (16 ms)` verdict + Flux ribbons + `618 Mbps` responsiveness results)
+3. `03-apple-intelligence.png` — **On-Device AI:** *Ask your Wi-Fi what to do next.* (`✦ ON-DEVICE BRIEF` expanded directly inside the top Verdict Card — 100% on-device, zero cloud calls)
+4. `04-privacy-route.png` — **Privacy Audit:** *Know who can see you on any Wi-Fi.* (4-hop encrypted Route circuit + VPN shield + 3-actor privacy breakdown)
+5. `05-rf-spectrum.png` — **RF Spectrum:** *Escape crowded airwaves in seconds.* (Gaussian 2.4 GHz channel overlap + `Crowded 2.4 GHz — faster 5 GHz available` Verdict Card with 1-click `Switch 5G`)
+6. `06-aether-studio.png` — **Workbench:** *Your full RF & latency workbench.* (Full-screen Aether Studio with spectrum, jitter graph, LAN devices & `Ask Aether`)
 
 ---
 

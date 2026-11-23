@@ -322,9 +322,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             if mods.isEmpty {
                 switch chars {
-                case "1": AppState.shared.stageMode = .flux; AppState.shared.performHaptic(); return true
-                case "2": AppState.shared.stageMode = .spectrum; AppState.shared.performHaptic(); return true
-                case "3": AppState.shared.stageMode = .route; AppState.shared.performHaptic(); return true
+                case "1": AppState.shared.setStageModeByUser(.flux); return true
+                case "2": AppState.shared.setStageModeByUser(.spectrum); return true
+                case "3": AppState.shared.setStageModeByUser(.route); return true
                 case "r":
                     Task { await AppState.shared.scanNearbyNetworks(force: true) }
                     AppState.shared.performHaptic()

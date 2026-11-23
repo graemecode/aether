@@ -228,9 +228,8 @@ struct InstrumentStageView: View {
                         let selected = state.stageMode == mode
                         Button {
                             withAnimation(reduceMotion ? nil : .spring(response: 0.28, dampingFraction: 0.82)) {
-                                state.stageMode = mode
+                                state.setStageModeByUser(mode)
                             }
-                            state.performHaptic()
                         } label: {
                             Text(mode.title)
                                 .font(.system(size: 9.2, weight: selected ? .semibold : .medium))
@@ -527,10 +526,17 @@ struct InstrumentStageView: View {
             }
 
             let midPt = quadBezierPoint(p0: p0, ctrl: ctrl, p1: p1, t: 0.5)
-            let labelStr = state.isProMode ? ByteRateFormatter.ms(hopMs) : HumanSummary.humanHopLabel(ms: hopMs, warn: 45, bad: 110)
+            let isCaptiveFinal = (i == 2 && state.captivePortal.isDetected)
+            let effectiveColor = isCaptiveFinal ? Color(red: 1.0, green: 0.76, blue: 0.36) : traceColor
+            let labelStr: String = {
+                if isCaptiveFinal { return "Sign-In" }
+                if state.isProMode { return ByteRateFormatter.ms(hopMs) }
+                if let ms = hopMs, ms >= 110 { return "\(Int(round(ms))) ms" }
+                return HumanSummary.humanHopLabel(ms: hopMs, warn: 45, bad: 110)
+            }()
             let text = Text(labelStr)
                 .font(.system(size: 8.2, weight: .semibold, design: .monospaced))
-                .foregroundColor(traceColor.opacity(0.92))
+                .foregroundColor(effectiveColor.opacity(0.95))
             ctx.draw(text, at: CGPoint(x: midPt.x, y: midPt.y - 11), anchor: .center)
         }
 

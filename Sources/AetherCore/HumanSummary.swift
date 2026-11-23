@@ -55,9 +55,222 @@ public struct SignalInsight: Identifiable, Sendable, Equatable {
     }
 }
 
+public enum VerdictAction: Sendable, Equatable {
+    case none
+    case signIn
+    case checkSignIn
+    case switchBand(ssid: String, targetBand: String)
+    case runTest
+}
+
+public struct ConnectionVerdict: Sendable, Equatable {
+    public let headline: String
+    public let detail: String
+    public let severity: AuditSeverity
+    public let action: VerdictAction
+    public let prefersRouteStage: Bool
+
+    public init(
+        headline: String,
+        detail: String,
+        severity: AuditSeverity,
+        action: VerdictAction = .none,
+        prefersRouteStage: Bool = false
+    ) {
+        self.headline = headline
+        self.detail = detail
+        self.severity = severity
+        self.action = action
+        self.prefersRouteStage = prefersRouteStage
+    }
+}
+
 /// Pure translation engine turning raw RF, latency, DNS, VPN, and socket telemetry into
 /// calm, relatable plain English — without hiding or faking a single measurement.
 public enum HumanSummary {
+
+    // MARK: - 0. Single Authoritative First-Screen Verdict (DaisyDisk Clarity)
+
+    /// Produces one immediate, grounded diagnosis for the top of the popover.
+    /// Explicitly separates local Wi-Fi, router, DNS, captive portal, and upstream bottlenecks —
+    /// and honestly admits when available hop measurements cannot isolate the cause.
+    public static func connectionVerdict(
+        wifi: WiFiSnapshot,
+        isWired: Bool,
+        hopHealth: HopHealth,
+        stability: StabilityMetrics,
+        channelAnalysis: ChannelAnalysis,
+        captivePortal: CaptivePortalState,
+        quality: NetworkQualityResult?,
+        activeVPN: VPNService?
+    ) -> ConnectionVerdict {
+        guard wifi.isConnected || isWired else {
+            return ConnectionVerdict(
+                headline: wifi.powerOn ? "Not connected" : "Wi-Fi is off",
+                detail: wifi.powerOn ? "Pick a network below to check signal, speed, and privacy." : "Turn Wi-Fi on to scan nearby networks.",
+                severity: .info,
+                action: .none,
+                prefersRouteStage: false
+            )
+        }
+
+        let vpnSuffix = activeVPN.map { " \($0.name) VPN is active." } ?? ""
+
+        // 1. Hotel / airport captive portal intercepting traffic
+        if captivePortal.isDetected {
+            return ConnectionVerdict(
+                headline: "Blocked by Wi-Fi sign-in page",
+                detail: "Your Mac reached the router, but this network requires sign-in before internet works.",
+                severity: .caution,
+                action: .signIn,
+                prefersRouteStage: true
+            )
+        }
+
+        // 2. Router reachable, upstream internet unreachable
+        if hopHealth.routerMs != nil && hopHealth.internetMs == nil {
+            return ConnectionVerdict(
+                headline: "Router is up, internet isn't responding",
+                detail: "Local Wi-Fi is fine, but traffic stops past the router — check for a login page or ISP outage.",
+                severity: .alert,
+                action: .checkSignIn,
+                prefersRouteStage: true
+            )
+        }
+
+        // 3. Severely weak local Wi-Fi signal (local link is the primary failure)
+        if !isWired && (wifi.snr < 14 || wifi.rssi <= -78) {
+            if let roam = channelAnalysis.roamingNudge {
+                return ConnectionVerdict(
+                    headline: "Weak Wi-Fi signal (\(wifi.snr) dB SNR)",
+                    detail: "A cleaner \(roam.targetBand.rawValue) access point is nearby for \(roam.ssid).",
+                    severity: .alert,
+                    action: .switchBand(ssid: roam.ssid, targetBand: roam.targetBand.shortBadge),
+                    prefersRouteStage: true
+                )
+            }
+            return ConnectionVerdict(
+                headline: "Weak Wi-Fi signal (\(wifi.snr) dB SNR)",
+                detail: "Move closer to the router — downloads may crawl and video calls will likely stutter.",
+                severity: .alert,
+                action: .none,
+                prefersRouteStage: true
+            )
+        }
+
+        // 4. Strong local Wi-Fi + fast router, but high upstream internet latency (e.g. airplane/satellite/remote ISP)
+        if let web = hopHealth.internetMs, web >= 150 {
+            let localOK = isWired || (wifi.snr >= 20 && (hopHealth.routerMs ?? 0) < 35)
+            let msInt = Int(round(web))
+            if localOK {
+                let severe = web >= 350
+                return ConnectionVerdict(
+                    headline: "Strong Wi-Fi, slow upstream link (~\(msInt) ms)",
+                    detail: "Downloads should work, but video calls will feel laggy — delay is beyond your router.\(vpnSuffix)",
+                    severity: severe ? .alert : .caution,
+                    action: .none,
+                    prefersRouteStage: true
+                )
+            }
+            // Both local hop and internet are elevated — honestly admit we cannot isolate a single hop
+            return ConnectionVerdict(
+                headline: "Slow across the path (~\(msInt) ms)",
+                detail: "Couldn't isolate Wi-Fi interference vs. router load yet — run a quick test to check bufferbloat.",
+                severity: .caution,
+                action: .runTest,
+                prefersRouteStage: true
+            )
+        }
+
+        // 5. DNS lookup bottleneck while internet & router are healthy
+        if let dns = hopHealth.dnsMs, dns >= 140, (hopHealth.routerMs ?? 0) < 35 {
+            let dnsInt = Int(round(dns))
+            return ConnectionVerdict(
+                headline: "Slow website lookups (\(dnsInt) ms DNS)",
+                detail: "Bandwidth is fine, but pages hesitate before loading because DNS is slow to answer.",
+                severity: .caution,
+                action: .none,
+                prefersRouteStage: true
+            )
+        }
+
+        // 6. Measured bufferbloat under load from Speed & Call Test
+        if let q = quality, q.responsivenessRPM < 250 {
+            return ConnectionVerdict(
+                headline: "Heavy delay under load (\(q.responsivenessRPM) RPM)",
+                detail: String(format: "Speed reaches %.0f Mbps down, but bufferbloat will make video calls stutter during uploads.", q.downloadMbps),
+                severity: .caution,
+                action: .none,
+                prefersRouteStage: true
+            )
+        }
+
+        // 7. Ambiguous elevated path delay or router jitter (honest admission when cause isn't isolated)
+        if let rtr = hopHealth.routerMs, rtr >= 35 {
+            let rtrInt = Int(round(rtr))
+            return ConnectionVerdict(
+                headline: "Elevated router delay (\(rtrInt) ms local hop)",
+                detail: "Couldn't isolate whether it's Wi-Fi interference or a busy router — run a test to check stability.",
+                severity: .caution,
+                action: .runTest,
+                prefersRouteStage: true
+            )
+        }
+        if stability.packetLossPercent >= 2.0 || stability.jitterMs >= 25.0 {
+            return ConnectionVerdict(
+                headline: "Unstable response (\(Int(round(stability.jitterMs))) ms jitter)",
+                detail: "Audio and video calls may hitch — cause could be airtime contention or upstream routing.",
+                severity: .caution,
+                action: .runTest,
+                prefersRouteStage: true
+            )
+        }
+
+        // 8. Crowded Wi-Fi channel / sticky 2.4 GHz client (with 1-click 5 GHz roam when available)
+        if !isWired, let roam = channelAnalysis.roamingNudge {
+            let overlapNote = channelAnalysis.overlappingCount > 0
+                ? "\(channelAnalysis.overlappingCount) nearby networks share Ch \(wifi.channel). "
+                : ""
+            return ConnectionVerdict(
+                headline: "Crowded \(wifi.band.rawValue) — faster \(roam.targetBand.rawValue) available",
+                detail: "\(overlapNote)Switch to \(roam.targetBand.rawValue) for higher throughput and smoother calls.",
+                severity: .caution,
+                action: .switchBand(ssid: roam.ssid, targetBand: roam.targetBand.shortBadge),
+                prefersRouteStage: false
+            )
+        }
+        if !isWired && channelAnalysis.overlappingCount >= 3 {
+            return ConnectionVerdict(
+                headline: "Crowded airwaves (\(channelAnalysis.overlappingCount) networks on Ch \(wifi.channel))",
+                detail: "Connection works, though heavy neighbor traffic can add jitter on calls.",
+                severity: .caution,
+                action: .none,
+                prefersRouteStage: false
+            )
+        }
+
+        // 9. Healthy, steady connection
+        if let web = hopHealth.internetMs {
+            let msInt = Int(round(web))
+            let qualifier = web <= 40 ? "Fast and steady" : "Steady connection"
+            return ConnectionVerdict(
+                headline: "\(qualifier) (\(msInt) ms)",
+                detail: "Ready for video calls, 4K video, and SSH.\(vpnSuffix)",
+                severity: .ok,
+                action: .none,
+                prefersRouteStage: false
+            )
+        }
+
+        let name = isWired ? "Ethernet" : (wifi.ssid ?? "Wi-Fi")
+        return ConnectionVerdict(
+            headline: "Connected to \(name)",
+            detail: "Measuring router, lookup, and internet response…",
+            severity: .info,
+            action: .none,
+            prefersRouteStage: false
+        )
+    }
 
     // MARK: - 1. Activity Readiness (Video Calls · 4K Video · Live & Games)
 

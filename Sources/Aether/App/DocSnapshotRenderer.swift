@@ -563,7 +563,27 @@ enum DocSnapshotRenderer {
         state.aiDiagnosis = nil
         state.isGeneratingBrief = false
 
-        // 01: Hero Menu Bar — Speed & Flux
+        // 01: Hero Showstopper — Instant Verdict + 4-Hop Route (DaisyDisk clarity: why is my Wi-Fi slow?)
+        applyOnDeviceBriefFixture(state)
+        state.aiDiagnosis = nil
+        state.stageMode = .route
+        state.activeTab = .speed
+        saveAppStorePopoverPlate(
+            eyebrow: "INSTANT WI-FI DIAGNOSIS",
+            headline: "Know why your\nWi-Fi feels slow.",
+            subhead: "Separates strong local Wi-Fi from slow upstream links in one glance — with a live 4-hop route and plain-English verdict.",
+            accent: Color(red: 1.0, green: 0.52, blue: 0.44),
+            specs: [
+                AppStoreSpec(value: "4-Hop", label: "Live route map"),
+                AppStoreSpec(value: "True", label: "ICMP latency"),
+                AppStoreSpec(value: "0.0%", label: "Idle CPU closed")
+            ],
+            card: renderPopover(state: state, scale: 3.0),
+            menuBar: renderMenuBarIcon(state: state, scale: 3.0),
+            to: outDir.appendingPathComponent("01-instant-verdict.png")
+        )
+
+        // 02: Live Menu Bar — Speed & Flux (Healthy Home Studio 5G)
         applyHomeStudioFixture(state)
         state.aiDiagnosis = nil
         state.stageMode = .flux
@@ -571,19 +591,38 @@ enum DocSnapshotRenderer {
         saveAppStorePopoverPlate(
             eyebrow: "LIVE MENU BAR INSTRUMENT",
             headline: "See your Wi-Fi\nin real time.",
-            subhead: "Signal physics, live throughput, and video-call readiness — without ever shifting your menu bar.",
+            subhead: "Signal physics, live throughput, and bufferbloat smoothness — in a fixed-width menu bar icon that never shifts.",
             accent: Color(red: 0.48, green: 0.86, blue: 1.0),
             specs: [
                 AppStoreSpec(value: "28pt", label: "Fixed menu bar"),
-                AppStoreSpec(value: "0.0%", label: "Idle CPU closed"),
+                AppStoreSpec(value: "618M", label: "Speed & RPM test"),
                 AppStoreSpec(value: "Native", label: "Swift & AppKit")
             ],
             card: renderPopover(state: state, scale: 3.0),
             menuBar: renderMenuBarIcon(state: state, scale: 3.0),
-            to: outDir.appendingPathComponent("01-speed-flux.png")
+            to: outDir.appendingPathComponent("02-speed-flux.png")
         )
 
-        // 02: Privacy & 4-Hop Route
+        // 03: On-Device Apple Intelligence Brief (Expanded Directly Inside the Top Verdict Card)
+        applyOnDeviceBriefFixture(state)
+        state.stageMode = .route
+        state.activeTab = .speed
+        saveAppStorePopoverPlate(
+            eyebrow: "ON-DEVICE APPLE INTELLIGENCE",
+            headline: "Ask your Wi-Fi\nwhat to do next.",
+            subhead: "On-demand local diagnosis grounded in real signal, channel overlap, and ICMP latency. Zero cloud calls.",
+            accent: Color(red: 0.62, green: 0.82, blue: 1.0),
+            specs: [
+                AppStoreSpec(value: "100%", label: "On-device model"),
+                AppStoreSpec(value: "0 bytes", label: "Sent to cloud"),
+                AppStoreSpec(value: "Private", label: "Zero tracking")
+            ],
+            card: renderPopover(state: state, scale: 3.0),
+            menuBar: renderMenuBarIcon(state: state, scale: 3.0),
+            to: outDir.appendingPathComponent("03-apple-intelligence.png")
+        )
+
+        // 04: Privacy & Route Audit
         applyPublicWiFiFixture(state)
         state.aiDiagnosis = nil
         state.stageMode = .route
@@ -591,38 +630,19 @@ enum DocSnapshotRenderer {
         saveAppStorePopoverPlate(
             eyebrow: "PRIVACY & ROUTE AUDIT",
             headline: "Know who can see\nyou on any Wi-Fi.",
-            subhead: "Visualizes your 4-hop circuit, VPN tunnel shield, evil-twin router checks, and devices sharing your LAN.",
+            subhead: "Shows your VPN tunnel shield, evil-twin router checks, and every device sharing your local network.",
             accent: Color(red: 0.28, green: 0.90, blue: 0.64),
             specs: [
-                AppStoreSpec(value: "4-Hop", label: "Live route map"),
-                AppStoreSpec(value: "Zero", label: "Cloud telemetry"),
+                AppStoreSpec(value: "VPN", label: "Tunnel shield"),
+                AppStoreSpec(value: "ARP", label: "LAN device list"),
                 AppStoreSpec(value: "Instant", label: "Evil-twin guard")
             ],
             card: renderPopover(state: state, scale: 3.0),
             menuBar: renderMenuBarIcon(state: state, scale: 3.0),
-            to: outDir.appendingPathComponent("02-privacy-route.png")
+            to: outDir.appendingPathComponent("04-privacy-route.png")
         )
 
-        // 03: On-Device Apple Intelligence Diagnosis (Real Satellite / High-RTT Bottleneck)
-        applyOnDeviceBriefFixture(state)
-        state.stageMode = .flux
-        state.activeTab = .speed
-        saveAppStorePopoverPlate(
-            eyebrow: "ON-DEVICE APPLE INTELLIGENCE",
-            headline: "Ask your Wi-Fi\nwhat’s actually slow.",
-            subhead: "On-demand local diagnosis grounded in real ICMP latency, RF signal, and interference. Zero cloud calls.",
-            accent: Color(red: 0.62, green: 0.82, blue: 1.0),
-            specs: [
-                AppStoreSpec(value: "100%", label: "On-device model"),
-                AppStoreSpec(value: "0 bytes", label: "Sent to cloud"),
-                AppStoreSpec(value: "Honest", label: "True ICMP RTT")
-            ],
-            card: renderPopover(state: state, scale: 3.0),
-            menuBar: renderMenuBarIcon(state: state, scale: 3.0),
-            to: outDir.appendingPathComponent("03-apple-intelligence.png")
-        )
-
-        // 04: 2.4 / 5 / 6 GHz RF Channel Spectrum & Roaming
+        // 05: 2.4 / 5 / 6 GHz RF Channel Spectrum & 1-Click 5 GHz Roaming
         applySpectrumFixture(state)
         state.aiDiagnosis = nil
         state.stageMode = .spectrum
@@ -634,15 +654,15 @@ enum DocSnapshotRenderer {
             accent: Color(red: 1.0, green: 0.76, blue: 0.38),
             specs: [
                 AppStoreSpec(value: "2.4·5·6", label: "GHz spectrum"),
-                AppStoreSpec(value: "1-Click", label: "Roam to 5 GHz"),
+                AppStoreSpec(value: "1-Click", label: "Switch to 5 GHz"),
                 AppStoreSpec(value: "Live", label: "Overlap math")
             ],
             card: renderPopover(state: state, scale: 3.0),
             menuBar: renderMenuBarIcon(state: state, scale: 3.0),
-            to: outDir.appendingPathComponent("04-rf-spectrum.png")
+            to: outDir.appendingPathComponent("05-rf-spectrum.png")
         )
 
-        // 05: Full-Screen Aether Studio Workbench
+        // 06: Full-Screen Aether Studio Workbench
         applyHomeStudioFixture(state)
         state.aiDiagnosis = nil
         state.isScanningNetworks = false
@@ -651,26 +671,7 @@ enum DocSnapshotRenderer {
             headline: "Your full RF & latency workbench.",
             subhead: "Channel spectrum, multi-hop jitter timeline, LAN devices, event log & on-device Q&A.",
             studio: renderStudio(state: state, scale: 3.0),
-            to: outDir.appendingPathComponent("05-aether-studio.png")
-        )
-
-        // 06: Unified Offline Wi-Fi Picker
-        applyDisconnectedFixture(state)
-        state.aiDiagnosis = nil
-        state.isScanningNetworks = false
-        saveAppStorePopoverPlate(
-            eyebrow: "CRAFTED FOR MACOS",
-            headline: "Calm and fast.\nEven offline.",
-            subhead: "Instant nearby network discovery, saved profiles, and unified navigation that never traps you.",
-            accent: Color(red: 0.72, green: 0.86, blue: 1.0),
-            specs: [
-                AppStoreSpec(value: "< 1 ms", label: "Cached scan"),
-                AppStoreSpec(value: "Saved", label: "Known profiles"),
-                AppStoreSpec(value: "⌘1–4", label: "Keyboard fast")
-            ],
-            card: renderPopover(state: state, scale: 3.0),
-            menuBar: renderMenuBarIcon(state: state, scale: 3.0),
-            to: outDir.appendingPathComponent("06-wifi-picker.png")
+            to: outDir.appendingPathComponent("06-aether-studio.png")
         )
 
         print("Rendered 6 S-tier 2560x1600 App Store plates to \(outDir.path)")
