@@ -428,7 +428,9 @@ final class AetherCoreTests: XCTestCase {
         Google    25295 graemeboy   22u  IPv4 0x4444      0t0  TCP 192.168.17.99:56427->93.184.216.34:80 (ESTABLISHED)
         Ando\\x20H 27858 graemeboy   24u  IPv4 0x5555      0t0  TCP 192.168.17.99:58373->172.67.191.41:443 (ESTABLISHED)
         """
-        let xray = SystemParsers.parseEstablishedConnections(fixture)
+        let xray = SystemParsers.parseEstablishedConnections(fixture) { _, cmd in
+            ResolvedApp(groupKey: "proc:\(cmd.lowercased())", displayName: cmd, appBundlePath: nil)
+        }
         XCTAssertEqual(xray.continuityPeerLinks, 1)
         XCTAssertEqual(xray.totalOutboundSockets, 3)
         XCTAssertEqual(xray.plaintextHTTPCount, 1)
@@ -656,5 +658,121 @@ final class AetherCoreTests: XCTestCase {
         // Smoke-check native SCPreferences Wi-Fi service name lookup
         let svc = NativeNetworkTelemetry.readNetworkServiceName(forBSDInterface: "en0")
         XCTAssertNotNil(svc)
+    }
+
+    // MARK: - Parent-App Attribution, Active Interfaces, Split-Tunnel Accounting & Outbound Connections
+
+    func testOutermostAppBundlePathResolvesNestedHelpers() {
+        let chromeHelper = "/Applications/Google Chrome.app/Contents/Frameworks/Google Chrome Framework.framework/Versions/130/Helpers/Google Chrome Helper (Renderer).app/Contents/MacOS/Google Chrome Helper (Renderer)"
+        XCTAssertEqual(
+            AppAttribution.outermostAppBundlePath(forExecutablePath: chromeHelper),
+            "/Applications/Google Chrome.app"
+        )
+        let electronHelper = "/Applications/Ando.app/Contents/Frameworks/Ando Helper (GPU).app/Contents/MacOS/Ando Helper (GPU)"
+        XCTAssertEqual(
+            AppAttribution.outermostAppBundlePath(forExecutablePath: electronHelper),
+            "/Applications/Ando.app"
+        )
+        XCTAssertNil(AppAttribution.outermostAppBundlePath(forExecutablePath: "/usr/libexec/cloudd"))
+        XCTAssertNil(AppAttribution.outermostAppBundlePath(forExecutablePath: ""))
+    }
+
+    func testDiffNettopGroupsHelperProcessesByParentApp() {
+        let prev: [String: SystemParsers.NettopRow] = [
+            "Google Chrome Helper.101": .init(name: "Google Chrome Helper", pid: 101, bytesIn: 10_000, bytesOut: 1_000),
+            "Google Chrome Helper.102": .init(name: "Google Chrome Helper", pid: 102, bytesIn: 20_000, bytesOut: 2_000),
+            "cloudd.200": .init(name: "cloudd", pid: 200, bytesIn: 5_000, bytesOut: 5_000)
+        ]
+        let cur: [String: SystemParsers.NettopRow] = [
+            "Google Chrome Helper.101": .init(name: "Google Chrome Helper", pid: 101, bytesIn: 110_000, bytesOut: 11_000),
+            "Google Chrome Helper.102": .init(name: "Google Chrome Helper", pid: 102, bytesIn: 220_000, bytesOut: 22_000),
+            "cloudd.200": .init(name: "cloudd", pid: 200, bytesIn: 25_000, bytesOut: 15_000)
+        ]
+        let grouped = SystemParsers.diffNettop(previous: prev, current: cur, elapsedSeconds: 2.0, limit: 5) { pid, name in
+            if pid == 101 || pid == 102 {
+                return ResolvedApp(groupKey: "app:/applications/google chrome.app", displayName: "Google Chrome", appBundlePath: "/Applications/Google Chrome.app")
+            }
+            return ResolvedApp(groupKey: "bin:\(name.lowercased())", displayName: name, appBundlePath: nil)
+        }
+
+        XCTAssertEqual(grouped.count, 2)
+        XCTAssertEqual(grouped[0].name, "Google Chrome")
+        XCTAssertEqual(grouped[0].appBundlePath, "/Applications/Google Chrome.app")
+        XCTAssertEqual(grouped[0].processCount, 2)
+        XCTAssertEqual(grouped[0].pid, 102) // highest contributor PID
+        XCTAssertEqual(grouped[0].downloadBytesPerSec, 150_000, accuracy: 1.0)
+        XCTAssertEqual(grouped[0].uploadBytesPerSec, 15_000, accuracy: 1.0)
+
+        XCTAssertEqual(grouped[1].name, "cloudd")
+        XCTAssertNil(grouped[1].appBundlePath)
+        XCTAssertEqual(grouped[1].processCount, 1)
+    }
+
+    func testPhysicalThroughputInterfaceAndActiveInterfaces() {
+        // Under split/full-tunnel VPN (`utun4`) while on Wi-Fi, measure physical `en0`
+        XCTAssertEqual(
+            InterfaceCounters.physicalThroughputInterface(defaultInterface: "utun4", wifiInterface: "en0", wifiConnected: true),
+            "en0"
+        )
+        // On wired Ethernet (`en7`), measure `en7`
+        XCTAssertEqual(
+            InterfaceCounters.physicalThroughputInterface(defaultInterface: "en7", wifiInterface: "en0", wifiConnected: true),
+            "en7"
+        )
+
+        let list = InterfaceCounters.buildActiveInterfaces(
+            ipv4Map: [
+                "utun4": "100.96.0.2",
+                "en0": "172.19.249.21",
+                "bridge100": "192.168.64.1",
+                "awdl0": "169.254.1.2"
+            ],
+            wifiInterface: "en0",
+            primaryInterface: "en0",
+            connectedVPNName: "Twingate"
+        )
+        XCTAssertEqual(list.count, 2)
+        XCTAssertEqual(list[0].kind, .wifi)
+        XCTAssertEqual(list[0].displayName, "Wi-Fi")
+        XCTAssertEqual(list[0].ipAddress, "172.19.249.21")
+        XCTAssertEqual(list[1].kind, .vpn)
+        XCTAssertEqual(list[1].displayName, "VPN · Twingate")
+        XCTAssertEqual(list[1].ipAddress, "100.96.0.2")
+    }
+
+    func testParseEstablishedConnectionsProducesGroupedOutboundRows() {
+        let sample = """
+        COMMAND     PID   USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
+        Chrome\\x20H 501 graeme   42u  IPv4 0x123      0t0  TCP 172.19.249.21:51001->140.82.114.4:443 (ESTABLISHED)
+        Chrome\\x20H 502 graeme   43u  IPv4 0x124      0t0  TCP 172.19.249.21:51002->140.82.114.4:443 (ESTABLISHED)
+        curl        610 graeme    5u  IPv4 0x125      0t0  TCP 172.19.249.21:51003->93.184.216.34:80 (ESTABLISHED)
+        """
+        let xray = SystemParsers.parseEstablishedConnections(sample) { pid, cmd in
+            if pid == 501 || pid == 502 {
+                return ResolvedApp(groupKey: "app:/applications/google chrome.app", displayName: "Google Chrome", appBundlePath: "/Applications/Google Chrome.app")
+            }
+            return ResolvedApp(groupKey: "bin:\(cmd.lowercased())", displayName: cmd, appBundlePath: nil)
+        }
+        XCTAssertEqual(xray.totalOutboundSockets, 3)
+        XCTAssertEqual(xray.plaintextHTTPCount, 1)
+        XCTAssertEqual(xray.connections.count, 2)
+        // Plaintext HTTP sorts first
+        XCTAssertEqual(xray.connections[0].appName, "curl")
+        XCTAssertEqual(xray.connections[0].serviceLabel, "HTTP")
+        XCTAssertTrue(xray.connections[0].isPlaintextHTTP)
+        // Duplicate sockets to same host collapse cleanly
+        XCTAssertEqual(xray.connections[1].appName, "Google Chrome")
+        XCTAssertEqual(xray.connections[1].serviceLabel, "HTTPS")
+        XCTAssertEqual(xray.connections[1].socketCount, 2)
+        XCTAssertEqual(xray.connections[1].remoteHost, "140.82.114.4")
+        XCTAssertEqual(xray.connections[1].remotePort, 443)
+    }
+
+    func testMenuBarByteRateFormatter() {
+        XCTAssertEqual(ByteRateFormatter.menuBar(0), "0 B/s")
+        XCTAssertEqual(ByteRateFormatter.menuBar(512), "512 B/s")
+        XCTAssertEqual(ByteRateFormatter.menuBar(45 * 1_024), "45.0 KB/s")
+        XCTAssertEqual(ByteRateFormatter.menuBar(544 * 1_024), "544 KB/s")
+        XCTAssertEqual(ByteRateFormatter.menuBar(21.9 * 1_024 * 1_024), "21.9 MB/s")
     }
 }

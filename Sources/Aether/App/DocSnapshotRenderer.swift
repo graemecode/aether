@@ -161,11 +161,16 @@ enum DocSnapshotRenderer {
         s.currentThroughput = ThroughputSample(downloadBytesPerSec: 42_600_000, uploadBytesPerSec: 6_840_000)
         s.sessionDownBytes = 4_820_000_000
         s.sessionUpBytes = 890_000_000
+        s.sessionPeakBytesPerSec = 58_400_000
+        s.activeInterfaces = [
+            ActiveInterface(bsdName: "en0", kind: .wifi, displayName: "Wi-Fi", ipAddress: "192.168.1.42", isPrimary: true),
+            ActiveInterface(bsdName: "utun4", kind: .vpn, displayName: "VPN · WireGuard", ipAddress: "100.96.0.2")
+        ]
 
         s.topProcesses = [
-            ProcessBandwidth(name: "git", pid: 4102, downloadBytesPerSec: 28_400_000, uploadBytesPerSec: 3_100_000),
-            ProcessBandwidth(name: "cloudd", pid: 901, downloadBytesPerSec: 8_200_000, uploadBytesPerSec: 2_900_000),
-            ProcessBandwidth(name: "Safari", pid: 1844, downloadBytesPerSec: 4_600_000, uploadBytesPerSec: 620_000)
+            ProcessBandwidth(name: "Safari", pid: 1844, downloadBytesPerSec: 28_400_000, uploadBytesPerSec: 3_100_000, appBundlePath: "/Applications/Safari.app", processCount: 4),
+            ProcessBandwidth(name: "git", pid: 4102, downloadBytesPerSec: 8_200_000, uploadBytesPerSec: 2_900_000),
+            ProcessBandwidth(name: "cloudd", pid: 901, downloadBytesPerSec: 4_600_000, uploadBytesPerSec: 620_000)
         ]
 
         s.qualityResult = NetworkQualityResult(

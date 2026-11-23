@@ -285,21 +285,71 @@ public struct ThroughputSample: Sendable, Equatable {
 }
 
 public struct ProcessBandwidth: Identifiable, Sendable, Equatable {
-    public var id: String { "\(name).\(pid)" }
+    public var id: String { appBundlePath ?? "proc:\(name.lowercased())" }
     public let name: String
     public let pid: Int
     public let downloadBytesPerSec: Double
     public let uploadBytesPerSec: Double
+    public let appBundlePath: String?
+    public let processCount: Int
 
-    public init(name: String, pid: Int, downloadBytesPerSec: Double, uploadBytesPerSec: Double) {
+    public init(
+        name: String,
+        pid: Int,
+        downloadBytesPerSec: Double,
+        uploadBytesPerSec: Double,
+        appBundlePath: String? = nil,
+        processCount: Int = 1
+    ) {
         self.name = name
         self.pid = pid
         self.downloadBytesPerSec = max(0, downloadBytesPerSec)
         self.uploadBytesPerSec = max(0, uploadBytesPerSec)
+        self.appBundlePath = appBundlePath
+        self.processCount = max(1, processCount)
     }
 
     public var totalBytesPerSec: Double {
         downloadBytesPerSec + uploadBytesPerSec
+    }
+}
+
+public enum ActiveInterfaceKind: String, Sendable, Equatable {
+    case wifi
+    case ethernet
+    case vpn
+    case other
+
+    public var sortRank: Int {
+        switch self {
+        case .wifi: return 0
+        case .ethernet: return 1
+        case .vpn: return 2
+        case .other: return 3
+        }
+    }
+}
+
+public struct ActiveInterface: Identifiable, Sendable, Equatable {
+    public var id: String { "\(bsdName):\(ipAddress)" }
+    public let bsdName: String
+    public let kind: ActiveInterfaceKind
+    public let displayName: String
+    public let ipAddress: String
+    public let isPrimary: Bool
+
+    public init(
+        bsdName: String,
+        kind: ActiveInterfaceKind,
+        displayName: String,
+        ipAddress: String,
+        isPrimary: Bool = false
+    ) {
+        self.bsdName = bsdName
+        self.kind = kind
+        self.displayName = displayName
+        self.ipAddress = ipAddress
+        self.isPrimary = isPrimary
     }
 }
 
@@ -601,7 +651,7 @@ public enum ByteRateFormatter {
         }
         let kb = b / 1_024.0
         if kb < 1_000 {
-            return kb < 10 ? String(format: "%.1f KB/s", kb) : String(format: "%.0f KB/s", kb)
+            return kb < 100 ? String(format: "%.1f KB/s", kb) : String(format: "%.0f KB/s", kb)
         }
         let mb = kb / 1_024.0
         if mb < 1_000 {
@@ -609,6 +659,28 @@ public enum ByteRateFormatter {
         }
         let gb = mb / 1_024.0
         return String(format: "%.2f GB/s", gb)
+    }
+
+    /// Clean menu-bar rate formatter with explicit unit and 3-digit precision: e.g. "0 B/s", "45.0 KB/s", "544 KB/s", "21.9 MB/s"
+    public static func menuBar(_ bytesPerSec: Double) -> String {
+        let b = max(0, bytesPerSec)
+        if b < 1_024 {
+            return "\(Int(b)) B/s"
+        }
+        let kb = b / 1_024.0
+        if kb < 999.5 {
+            if kb < 10 { return String(format: "%.2f KB/s", kb) }
+            if kb < 100 { return String(format: "%.1f KB/s", kb) }
+            return String(format: "%.0f KB/s", kb)
+        }
+        let mb = kb / 1_024.0
+        if mb < 999.5 {
+            if mb < 10 { return String(format: "%.2f MB/s", mb) }
+            if mb < 100 { return String(format: "%.1f MB/s", mb) }
+            return String(format: "%.0f MB/s", mb)
+        }
+        let gb = mb / 1_024.0
+        return String(format: "%.1f GB/s", gb)
     }
 
     public static func totalBytes(_ bytes: UInt64) -> String {

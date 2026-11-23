@@ -18,7 +18,7 @@ final class MenuBarIconView: NSView {
     private var showSpeedText: Bool = false
 
     static let iconOnlyWidth: CGFloat = 22
-    static let iconWithSpeedWidth: CGFloat = 52
+    static let iconWithSpeedWidth: CGFloat = 72
 
     var preferredWidth: CGFloat {
         showSpeedText ? Self.iconWithSpeedWidth : Self.iconOnlyWidth
@@ -151,49 +151,47 @@ final class MenuBarIconView: NSView {
         ctx.fillEllipse(in: CGRect(x: cx - dotR, y: midY - dotR, width: dotR * 2, height: dotR * 2))
     }
 
-    // MARK: - Flush-Left Tight Speed Stack (Custom Micro Chevrons + Tabular Digits)
+    // MARK: - Airy Right-Aligned Speed Stack (Custom Micro Chevrons + Tabular Digits + Explicit Units)
 
     private func drawTightSpeedStack(ctx: CGContext, startX: CGFloat, midY: CGFloat, inkGray: CGFloat) {
         let downActive = downloadRate >= 1_024
         let upActive = uploadRate >= 1_024
         let downDominant = downloadRate >= uploadRate
 
-        let downAlpha: CGFloat = downActive ? (downDominant ? 0.98 : 0.78) : 0.38
-        let upAlpha: CGFloat = upActive ? (!downDominant ? 0.98 : 0.72) : 0.36
+        let downAlpha: CGFloat = downActive ? (downDominant ? 0.98 : 0.78) : 0.42
+        let upAlpha: CGFloat = upActive ? (!downDominant ? 0.98 : 0.72) : 0.38
 
-        // Top row (download): micro ▾ + compact rate
-        drawMicroArrow(ctx: ctx, cx: startX + 2.0, cy: midY + 3.8, pointingUp: false, gray: inkGray, alpha: downAlpha)
-        // Bottom row (upload): micro ▴ + compact rate
-        drawMicroArrow(ctx: ctx, cx: startX + 2.0, cy: midY - 3.9, pointingUp: true, gray: inkGray, alpha: upAlpha)
+        // Top row (download): crisp micro ▾ + right-aligned tabular rate
+        drawMicroArrow(ctx: ctx, cx: startX + 2.5, cy: midY + 4.0, pointingUp: false, gray: inkGray, alpha: downAlpha)
+        // Bottom row (upload): crisp micro ▴ + right-aligned tabular rate
+        drawMicroArrow(ctx: ctx, cx: startX + 2.5, cy: midY - 4.0, pointingUp: true, gray: inkGray, alpha: upAlpha)
 
-        let textX = startX + 5.4
-        let textW = max(10, bounds.width - textX - 1.5)
+        let textX = startX + 6.5
+        let textW = max(12, bounds.width - textX - 2.0)
 
         let para = NSMutableParagraphStyle()
-        para.alignment = .left
+        para.alignment = .right
         para.lineBreakMode = .byClipping
 
-        let downFont = NSFont.monospacedDigitSystemFont(ofSize: 8.3, weight: downDominant && downActive ? .bold : .semibold)
-        let upFont = NSFont.monospacedDigitSystemFont(ofSize: 8.3, weight: !downDominant && upActive ? .bold : .medium)
+        let downFont = NSFont.monospacedDigitSystemFont(ofSize: 8.4, weight: downDominant && downActive ? .semibold : .medium)
+        let upFont = NSFont.monospacedDigitSystemFont(ofSize: 8.4, weight: !downDominant && upActive ? .semibold : .regular)
 
         let downAttrs: [NSAttributedString.Key: Any] = [
             .font: downFont,
             .foregroundColor: NSColor(white: inkGray, alpha: downAlpha),
-            .kern: -0.25,
             .paragraphStyle: para
         ]
         let upAttrs: [NSAttributedString.Key: Any] = [
             .font: upFont,
             .foregroundColor: NSColor(white: inkGray, alpha: upAlpha),
-            .kern: -0.25,
             .paragraphStyle: para
         ]
 
-        let downStr = ByteRateFormatter.compact(downloadRate)
-        let upStr = ByteRateFormatter.compact(uploadRate)
+        let downStr = ByteRateFormatter.menuBar(downloadRate)
+        let upStr = ByteRateFormatter.menuBar(uploadRate)
 
-        let downRect = CGRect(x: textX, y: midY - 0.6, width: textW, height: 10.0)
-        let upRect = CGRect(x: textX, y: midY - 8.6, width: textW, height: 10.0)
+        let downRect = CGRect(x: textX, y: midY - 0.5, width: textW, height: 10.2)
+        let upRect = CGRect(x: textX, y: midY - 8.8, width: textW, height: 10.2)
         (downStr as NSString).draw(in: downRect, withAttributes: downAttrs)
         (upStr as NSString).draw(in: upRect, withAttributes: upAttrs)
     }

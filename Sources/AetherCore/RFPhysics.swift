@@ -57,25 +57,60 @@ public struct OutboundAppSummary: Identifiable, Sendable, Equatable {
     }
 }
 
+public struct OutboundConnection: Identifiable, Sendable, Equatable {
+    public var id: String { "\(appBundlePath ?? appName.lowercased())|\(remoteHost):\(remotePort)" }
+    public let appName: String
+    public let appBundlePath: String?
+    public let pid: Int
+    public let remoteHost: String
+    public let remotePort: Int
+    public let serviceLabel: String
+    public let socketCount: Int
+    public let isPlaintextHTTP: Bool
+
+    public init(
+        appName: String,
+        appBundlePath: String? = nil,
+        pid: Int = 0,
+        remoteHost: String,
+        remotePort: Int,
+        serviceLabel: String,
+        socketCount: Int = 1,
+        isPlaintextHTTP: Bool = false
+    ) {
+        self.appName = appName
+        self.appBundlePath = appBundlePath
+        self.pid = pid
+        self.remoteHost = remoteHost
+        self.remotePort = remotePort
+        self.serviceLabel = serviceLabel
+        self.socketCount = max(1, socketCount)
+        self.isPlaintextHTTP = isPlaintextHTTP
+    }
+}
+
 public struct ConnectionXRay: Sendable, Equatable {
     public let totalOutboundSockets: Int
     public let uniqueRemoteHosts: Int
     public let plaintextHTTPCount: Int
     public let continuityPeerLinks: Int
     public let topApps: [OutboundAppSummary]
+    public let connections: [OutboundConnection]
 
     public init(
         totalOutboundSockets: Int = 0,
         uniqueRemoteHosts: Int = 0,
         plaintextHTTPCount: Int = 0,
         continuityPeerLinks: Int = 0,
-        topApps: [OutboundAppSummary] = []
+        topApps: [OutboundAppSummary] = [],
+        connections: [OutboundConnection] = []
     ) {
         self.totalOutboundSockets = totalOutboundSockets
         self.uniqueRemoteHosts = uniqueRemoteHosts
         self.plaintextHTTPCount = plaintextHTTPCount
         self.continuityPeerLinks = continuityPeerLinks
         self.topApps = topApps
+        self.connections = connections
     }
 }
 

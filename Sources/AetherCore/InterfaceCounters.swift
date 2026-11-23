@@ -17,7 +17,9 @@ public final class InterfaceCounters: @unchecked Sendable {
         public let sample: ThroughputSample
         public let sessionDownBytes: UInt64
         public let sessionUpBytes: UInt64
+        public let sessionPeakBytesPerSec: Double
         public let localIP: String?
+        public let activeInterfaces: [ActiveInterface]
         public let activeWiFiMAC: String?
         public let hasGlobalIPv6: Bool
         public let awdl: AWDLSnapshot
@@ -28,10 +30,75 @@ public final class InterfaceCounters: @unchecked Sendable {
     private var lastInterface: String?
     private var sessionDown: UInt64 = 0
     private var sessionUp: UInt64 = 0
+    private var sessionPeak: Double = 0
     private var prevAwdlPackets: UInt64?
     private var prevAwdlDate: Date?
 
     public init() {}
+
+    /// Picks the physical wire interface for accurate throughput accounting even under split-tunnel VPNs.
+    /// When `defaultInterface` is a virtual L3 tunnel (`utun*`/`ipsec*`/`ppp*`), measuring the underlying
+    /// physical interface (`en0` on Wi-Fi) captures both tunneled and direct wire traffic without undercounting.
+    public static func physicalThroughputInterface(
+        defaultInterface: String?,
+        wifiInterface: String,
+        wifiConnected: Bool
+    ) -> String {
+        if let def = defaultInterface, !def.isEmpty {
+            let isTunnel = def.hasPrefix("utun") || def.hasPrefix("ipsec") || def.hasPrefix("ppp")
+            if !isTunnel {
+                return def
+            }
+        }
+        return wifiConnected ? wifiInterface : (defaultInterface ?? wifiInterface)
+    }
+
+    /// Pure classification helper for building the clean `Wi-Fi` / `Ethernet` / `VPN` active interfaces list.
+    public static func buildActiveInterfaces(
+        ipv4Map: [String: String],
+        wifiInterface: String = "en0",
+        primaryInterface: String? = nil,
+        connectedVPNName: String? = nil
+    ) -> [ActiveInterface] {
+        var result: [ActiveInterface] = []
+        for (name, ip) in ipv4Map {
+            if name.hasPrefix("bridge") || name.hasPrefix("ap") || name.hasPrefix("awdl") || name.hasPrefix("llw") || name.hasPrefix("anpi") {
+                continue
+            }
+            let kind: ActiveInterfaceKind
+            let display: String
+            if name == wifiInterface {
+                kind = .wifi
+                display = "Wi-Fi"
+            } else if name.hasPrefix("utun") || name.hasPrefix("ipsec") || name.hasPrefix("ppp") {
+                kind = .vpn
+                if let vpnName = connectedVPNName, !vpnName.isEmpty {
+                    display = "VPN · \(vpnName)"
+                } else {
+                    display = "VPN"
+                }
+            } else if name.hasPrefix("en") {
+                kind = .ethernet
+                display = "Ethernet"
+            } else {
+                kind = .other
+                display = name
+            }
+            result.append(ActiveInterface(
+                bsdName: name,
+                kind: kind,
+                displayName: display,
+                ipAddress: ip,
+                isPrimary: name == primaryInterface
+            ))
+        }
+        result.sort { a, b in
+            if a.kind.sortRank != b.kind.sortRank { return a.kind.sortRank < b.kind.sortRank }
+            if a.isPrimary != b.isPrimary { return a.isPrimary }
+            return a.bsdName < b.bsdName
+        }
+        return result
+    }
 
     /// Call on Mac sleep/wake so the first post-wake sample starts clean without a phantom spike.
     public func resetBaseline() {
@@ -42,7 +109,11 @@ public final class InterfaceCounters: @unchecked Sendable {
         }
     }
 
-    public func readSample(preferredInterface: String? = nil) -> SampleResult {
+    public func readSample(
+        preferredInterface: String? = nil,
+        wifiInterface: String = "en0",
+        connectedVPNName: String? = nil
+    ) -> SampleResult {
         let now = Date()
         var ifaddrPtr: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&ifaddrPtr) == 0, let first = ifaddrPtr else {
@@ -50,7 +121,9 @@ public final class InterfaceCounters: @unchecked Sendable {
                 sample: ThroughputSample(timestamp: now, downloadBytesPerSec: 0, uploadBytesPerSec: 0),
                 sessionDownBytes: 0,
                 sessionUpBytes: 0,
+                sessionPeakBytesPerSec: 0,
                 localIP: nil,
+                activeInterfaces: [],
                 activeWiFiMAC: nil,
                 hasGlobalIPv6: false,
                 awdl: AWDLSnapshot()
@@ -58,7 +131,7 @@ public final class InterfaceCounters: @unchecked Sendable {
         }
         defer { freeifaddrs(first) }
 
-        let target = preferredInterface ?? "en0"
+        let target = preferredInterface ?? wifiInterface
         var bytesIn: UInt64 = 0
         var bytesOut: UInt64 = 0
         var matchedTarget = false
@@ -132,7 +205,13 @@ public final class InterfaceCounters: @unchecked Sendable {
 
         let currentIn = matchedTarget ? bytesIn : fallbackIn
         let currentOut = matchedTarget ? bytesOut : fallbackOut
-        let localIP = ipv4Map[target] ?? ipv4Map["en0"] ?? ipv4Map.values.first
+        let localIP = ipv4Map[target] ?? ipv4Map[wifiInterface] ?? ipv4Map.values.first
+        let activeInterfaces = Self.buildActiveInterfaces(
+            ipv4Map: ipv4Map,
+            wifiInterface: wifiInterface,
+            primaryInterface: target,
+            connectedVPNName: connectedVPNName
+        )
 
         return lock.withLock {
             // Compute live awdl0 packet rate
@@ -154,7 +233,9 @@ public final class InterfaceCounters: @unchecked Sendable {
                     sample: ThroughputSample(timestamp: now, downloadBytesPerSec: 0, uploadBytesPerSec: 0),
                     sessionDownBytes: sessionDown,
                     sessionUpBytes: sessionUp,
+                    sessionPeakBytesPerSec: sessionPeak,
                     localIP: localIP,
+                    activeInterfaces: activeInterfaces,
                     activeWiFiMAC: activeEn0MAC,
                     hasGlobalIPv6: hasGlobalIPv6,
                     awdl: awdlSnap
@@ -170,7 +251,9 @@ public final class InterfaceCounters: @unchecked Sendable {
                     sample: ThroughputSample(timestamp: now, downloadBytesPerSec: 0, uploadBytesPerSec: 0),
                     sessionDownBytes: sessionDown,
                     sessionUpBytes: sessionUp,
+                    sessionPeakBytesPerSec: sessionPeak,
                     localIP: localIP,
+                    activeInterfaces: activeInterfaces,
                     activeWiFiMAC: activeEn0MAC,
                     hasGlobalIPv6: hasGlobalIPv6,
                     awdl: awdlSnap
@@ -184,7 +267,9 @@ public final class InterfaceCounters: @unchecked Sendable {
                     sample: ThroughputSample(timestamp: now, downloadBytesPerSec: 0, uploadBytesPerSec: 0),
                     sessionDownBytes: sessionDown,
                     sessionUpBytes: sessionUp,
+                    sessionPeakBytesPerSec: sessionPeak,
                     localIP: localIP,
+                    activeInterfaces: activeInterfaces,
                     activeWiFiMAC: activeEn0MAC,
                     hasGlobalIPv6: hasGlobalIPv6,
                     awdl: awdlSnap
@@ -195,16 +280,21 @@ public final class InterfaceCounters: @unchecked Sendable {
             let dOut = Self.safe32BitCounterDelta(previous: prev.bytesOut, current: currentOut)
             sessionDown &+= dIn
             sessionUp &+= dOut
+            let downRate = Double(dIn) / dt
+            let upRate = Double(dOut) / dt
+            sessionPeak = max(sessionPeak, downRate + upRate)
 
             return SampleResult(
                 sample: ThroughputSample(
                     timestamp: now,
-                    downloadBytesPerSec: Double(dIn) / dt,
-                    uploadBytesPerSec: Double(dOut) / dt
+                    downloadBytesPerSec: downRate,
+                    uploadBytesPerSec: upRate
                 ),
                 sessionDownBytes: sessionDown,
                 sessionUpBytes: sessionUp,
+                sessionPeakBytesPerSec: sessionPeak,
                 localIP: localIP,
+                activeInterfaces: activeInterfaces,
                 activeWiFiMAC: activeEn0MAC,
                 hasGlobalIPv6: hasGlobalIPv6,
                 awdl: awdlSnap

@@ -73,9 +73,17 @@ final class StudioWindowController: NSObject, NSWindowDelegate {
 // MARK: - Studio Workstation View
 
 struct AetherStudioView: View {
+    enum BottomLeftTab: String, CaseIterable, Identifiable {
+        case lanDevices = "LAN DEVICES"
+        case connections = "CONNECTIONS"
+        var id: String { rawValue }
+    }
+
     @ObservedObject var state: AppState
     @State private var selectedBand: WiFiBand = .band24
+    @State private var bottomLeftTab: BottomLeftTab = .lanDevices
     @Namespace private var bandNS
+    @Namespace private var bottomTabNS
 
     private let bg = Color(red: 0.026, green: 0.030, blue: 0.038)
     private let cardBg = Color.white.opacity(0.034)
@@ -170,12 +178,20 @@ struct AetherStudioView: View {
                     sub: "\(state.awdl.totalPackets) awdl0 pkts",
                     accent: state.awdl.isStealingAirtime ? Color(red: 1.0, green: 0.74, blue: 0.34) : .white
                 )
-                physicsMetricCell(
-                    label: "LIVE X-RAY · IPv6",
-                    value: "\(state.connectionXRay.totalOutboundSockets) Sockets",
-                    sub: "\(state.connectionXRay.plaintextHTTPCount) HTTP · \(state.hasGlobalIPv6 ? "Native IPv6" : "IPv4 only")",
-                    accent: state.connectionXRay.plaintextHTTPCount > 0 ? Color(red: 1.0, green: 0.50, blue: 0.46) : .white
-                )
+                Button {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
+                        bottomLeftTab = .connections
+                    }
+                } label: {
+                    physicsMetricCell(
+                        label: "LIVE X-RAY · IPv6",
+                        value: "\(state.connectionXRay.totalOutboundSockets) Sockets",
+                        sub: "\(state.connectionXRay.plaintextHTTPCount) HTTP · \(state.hasGlobalIPv6 ? "Native IPv6" : "IPv4 only")",
+                        accent: state.connectionXRay.plaintextHTTPCount > 0 ? Color(red: 1.0, green: 0.50, blue: 0.46) : .white
+                    )
+                }
+                .buttonStyle(.plain)
+                .help("View active apps and live outbound connections")
             }
 
             // Top Row: RF Channel Spectrum Analyzer (Left) + Multi-Hop Latency/Jitter Timeline (Right)
@@ -185,9 +201,9 @@ struct AetherStudioView: View {
             }
             .frame(maxHeight: .infinity)
 
-            // Bottom Row: LAN Device Discovery Table (Left) + Connection Event Log (Right)
+            // Bottom Row: LAN Devices / Live Apps & Connections (Left) + Connection Event Log (Right)
             HStack(spacing: 14) {
-                lanDevicesCard
+                devicesOrConnectionsCard
                 eventLogCard
             }
             .frame(maxHeight: .infinity)
@@ -198,7 +214,19 @@ struct AetherStudioView: View {
             if state.wifi.band == .band5 || state.wifi.band == .band6 || state.wifi.band == .band24 {
                 selectedBand = state.wifi.band
             }
+            if state.studioFocusConnections {
+                bottomLeftTab = .connections
+                state.studioFocusConnections = false
+            }
             Task { await state.scanNearbyNetworks() }
+        }
+        .onChange(of: state.studioFocusConnections) { _, shouldFocus in
+            if shouldFocus {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
+                    bottomLeftTab = .connections
+                }
+                state.studioFocusConnections = false
+            }
         }
     }
 
@@ -340,65 +368,54 @@ struct AetherStudioView: View {
         .overlay(specularBorder(radius: 12))
     }
 
-    // MARK: - 3. LAN Device Discovery Table
+    // MARK: - 3. LAN Devices & Live Apps / Outbound Connections
 
-    private var lanDevicesCard: some View {
+    private var devicesOrConnectionsCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("DEVICES ON THIS WI-FI (\(state.lanDevices.count))")
-                    .font(.system(size: 9.0, weight: .semibold, design: .monospaced))
-                    .foregroundColor(inkSoft)
-                    .tracking(0.6)
-                Spacer()
-                Text("ARP · OUI · mDNS")
-                    .font(.system(size: 8.0, design: .monospaced))
-                    .foregroundColor(inkDim)
-            }
-
-            ScrollView(.vertical, showsIndicators: true) {
-                VStack(spacing: 4) {
-                    ForEach(state.lanDevices) { dev in
-                        HStack(spacing: 8) {
-                            Circle()
-                                .fill(dev.isGateway ? Color(red: 0.30, green: 0.90, blue: 0.64) : (dev.isLocalMac ? Color.white : Color.white.opacity(0.35)))
-                                .frame(width: 5.5, height: 5.5)
-
-                            VStack(alignment: .leading, spacing: 1) {
-                                HStack(spacing: 5) {
-                                    Text(dev.displayName)
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(.white.opacity(0.94))
-                                        .lineLimit(1)
-                                    if dev.isGateway {
-                                        miniTag("ROUTER", color: Color(red: 0.30, green: 0.90, blue: 0.64))
-                                    } else if dev.isLocalMac {
-                                        miniTag("THIS MAC", color: .white)
-                                    } else if dev.isPrivateMAC {
-                                        miniTag("PRIVATE MAC", color: Color(red: 0.72, green: 0.86, blue: 1.0))
+            HStack(spacing: 8) {
+                HStack(spacing: 2) {
+                    ForEach(BottomLeftTab.allCases) { tab in
+                        let on = bottomLeftTab == tab
+                        let count = tab == .lanDevices ? state.lanDevices.count : state.connectionXRay.totalOutboundSockets
+                        Button {
+                            withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
+                                bottomLeftTab = tab
+                            }
+                        } label: {
+                            Text("\(tab.rawValue) (\(count))")
+                                .font(.system(size: 8.4, weight: on ? .semibold : .regular, design: .monospaced))
+                                .foregroundColor(on ? .black : inkSoft)
+                                .padding(.horizontal, 8.5)
+                                .frame(height: 22)
+                                .background {
+                                    if on {
+                                        Capsule()
+                                            .fill(Color.white)
+                                            .matchedGeometryEffect(id: "studioBottomTabPill", in: bottomTabNS)
                                     }
                                 }
-                                Text("\(dev.vendor) · \(dev.mac)")
-                                    .font(.system(size: 8.6, design: .monospaced))
-                                    .foregroundColor(inkDim)
-                            }
-
-                            Spacer()
-
-                            Button {
-                                state.copyToClipboard(dev.ip, label: dev.ip)
-                            } label: {
-                                Text(dev.ip)
-                                    .font(.system(size: 9.8, weight: .medium, design: .monospaced))
-                                    .foregroundColor(inkSoft)
-                            }
-                            .buttonStyle(.plain)
                         }
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 5.5)
-                        .background(Color.white.opacity(0.025))
-                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        .buttonStyle(.plain)
                     }
                 }
+                .padding(2.5)
+                .background(Color.white.opacity(0.05))
+                .clipShape(Capsule())
+
+                Spacer()
+
+                Text(bottomLeftTab == .lanDevices
+                     ? "ARP · OUI · mDNS"
+                     : "\(state.connectionXRay.uniqueRemoteHosts) HOSTS · PEAK \(state.sessionPeakBytesPerSec >= 1_024 ? ByteRateFormatter.menuBar(state.sessionPeakBytesPerSec) : "—")")
+                    .font(.system(size: 8.0, design: .monospaced))
+                    .foregroundColor(inkDim)
+                    .lineLimit(1)
+            }
+
+            if bottomLeftTab == .lanDevices {
+                lanDevicesList
+            } else {
+                appsAndConnectionsList
             }
         }
         .padding(14)
@@ -406,6 +423,192 @@ struct AetherStudioView: View {
         .background(cardBg)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(specularBorder(radius: 12))
+    }
+
+    private var lanDevicesList: some View {
+        ScrollView(.vertical, showsIndicators: true) {
+            VStack(spacing: 4) {
+                ForEach(state.lanDevices) { dev in
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(dev.isGateway ? Color(red: 0.30, green: 0.90, blue: 0.64) : (dev.isLocalMac ? Color.white : Color.white.opacity(0.35)))
+                            .frame(width: 5.5, height: 5.5)
+
+                        VStack(alignment: .leading, spacing: 1) {
+                            HStack(spacing: 5) {
+                                Text(dev.displayName)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.94))
+                                    .lineLimit(1)
+                                if dev.isGateway {
+                                    miniTag("ROUTER", color: Color(red: 0.30, green: 0.90, blue: 0.64))
+                                } else if dev.isLocalMac {
+                                    miniTag("THIS MAC", color: .white)
+                                } else if dev.isPrivateMAC {
+                                    miniTag("PRIVATE MAC", color: Color(red: 0.72, green: 0.86, blue: 1.0))
+                                }
+                            }
+                            Text("\(dev.vendor) · \(dev.mac)")
+                                .font(.system(size: 8.6, design: .monospaced))
+                                .foregroundColor(inkDim)
+                        }
+
+                        Spacer()
+
+                        Button {
+                            state.copyToClipboard(dev.ip, label: dev.ip)
+                        } label: {
+                            Text(dev.ip)
+                                .font(.system(size: 9.8, weight: .medium, design: .monospaced))
+                                .foregroundColor(inkSoft)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5.5)
+                    .background(Color.white.opacity(0.025))
+                    .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                }
+            }
+        }
+    }
+
+    private var appsAndConnectionsList: some View {
+        ScrollView(.vertical, showsIndicators: true) {
+            VStack(alignment: .leading, spacing: 6) {
+                // Active interfaces summary strip
+                if !state.activeInterfaces.isEmpty {
+                    HStack(spacing: 8) {
+                        ForEach(state.activeInterfaces.prefix(3)) { iface in
+                            Button {
+                                state.copyToClipboard(iface.ipAddress, label: iface.ipAddress)
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Circle()
+                                        .fill(iface.kind == .vpn
+                                              ? Color(red: 0.30, green: 0.90, blue: 0.64)
+                                              : Color(red: 0.74, green: 0.90, blue: 1.0))
+                                        .frame(width: 5, height: 5)
+                                    Text(iface.displayName)
+                                        .font(.system(size: 9.2, weight: .semibold))
+                                        .foregroundColor(.white.opacity(0.88))
+                                    Text(iface.ipAddress)
+                                        .font(.system(size: 9.0, design: .monospaced))
+                                        .foregroundColor(inkDim)
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.white.opacity(0.04))
+                                .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        Spacer()
+                    }
+                }
+
+                // Active Bandwidth Apps (Parent-Grouped with Real App Icons)
+                let activeApps = state.topProcesses.filter { $0.totalBytesPerSec >= 1_024 }
+                if !activeApps.isEmpty {
+                    VStack(spacing: 3.5) {
+                        ForEach(activeApps.prefix(5)) { proc in
+                            HStack(spacing: 8) {
+                                AppProcessIconView(
+                                    appBundlePath: proc.appBundlePath,
+                                    pid: proc.pid,
+                                    processName: proc.name,
+                                    size: 16
+                                )
+                                Text(proc.name)
+                                    .font(.system(size: 10.8, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.94))
+                                    .lineLimit(1)
+                                if proc.processCount > 1 {
+                                    miniTag("\(proc.processCount) PROCS", color: Color.white.opacity(0.75))
+                                }
+                                Spacer()
+                                Text("↓ \(ByteRateFormatter.menuBar(proc.downloadBytesPerSec))")
+                                    .font(.system(size: 9.0, design: .monospaced))
+                                    .foregroundColor(Color(red: 0.74, green: 0.90, blue: 1.0).opacity(0.9))
+                                    .monospacedDigit()
+                                Text("↑ \(ByteRateFormatter.menuBar(proc.uploadBytesPerSec))")
+                                    .font(.system(size: 9.0, design: .monospaced))
+                                    .foregroundColor(Color(red: 1.0, green: 0.78, blue: 0.48).opacity(0.9))
+                                    .monospacedDigit()
+                            }
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 5)
+                            .background(Color.white.opacity(0.032))
+                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        }
+                    }
+                }
+
+                // Live Outbound Sockets ("Who talks to whom")
+                if state.connectionXRay.connections.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("No outbound sockets captured yet.")
+                            .font(.system(size: 10.8, weight: .medium))
+                            .foregroundColor(.white.opacity(0.75))
+                        Text("Live per-app socket inspection shows which remote hosts and services each app is talking to.")
+                            .font(.system(size: 9.8))
+                            .foregroundColor(inkDim)
+                    }
+                    .padding(.top, 6)
+                } else {
+                    VStack(spacing: 3.5) {
+                        ForEach(state.connectionXRay.connections.prefix(40)) { conn in
+                            HStack(spacing: 7.5) {
+                                AppProcessIconView(
+                                    appBundlePath: conn.appBundlePath,
+                                    pid: conn.pid,
+                                    processName: conn.appName,
+                                    size: 15
+                                )
+
+                                Text(conn.appName)
+                                    .font(.system(size: 10.6, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.94))
+                                    .lineLimit(1)
+                                    .frame(minWidth: 76, maxWidth: 112, alignment: .leading)
+
+                                miniTag(
+                                    conn.serviceLabel,
+                                    color: conn.isPlaintextHTTP
+                                        ? Color(red: 1.0, green: 0.48, blue: 0.44)
+                                        : Color(red: 0.72, green: 0.86, blue: 1.0)
+                                )
+
+                                if conn.socketCount > 1 {
+                                    Text("×\(conn.socketCount)")
+                                        .font(.system(size: 8.6, weight: .semibold, design: .monospaced))
+                                        .foregroundColor(inkDim)
+                                }
+
+                                Spacer()
+
+                                Button {
+                                    let endpoint = "\(conn.remoteHost):\(conn.remotePort)"
+                                    state.copyToClipboard(endpoint, label: endpoint)
+                                } label: {
+                                    Text("\(conn.remoteHost):\(conn.remotePort)")
+                                        .font(.system(size: 9.2, design: .monospaced))
+                                        .foregroundColor(inkSoft)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                }
+                                .buttonStyle(.plain)
+                                .help("Click to copy remote endpoint")
+                            }
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 4.5)
+                            .background(Color.white.opacity(0.022))
+                            .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - 4. Connection Event Timeline

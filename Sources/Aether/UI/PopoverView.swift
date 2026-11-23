@@ -1003,51 +1003,128 @@ struct PopoverView: View {
             }
             .padding(.top, 2)
 
-            // 4. Active Bandwidth Apps — appears automatically ONLY when an app is moving >= 25 KB/s (zero idle bloat!)
-            let activeApps = state.topProcesses.filter { $0.totalBytesPerSec >= 25_000 }
-            if !activeApps.isEmpty {
-                Divider().background(hairSoft)
-                VStack(alignment: .leading, spacing: 5.5) {
-                    HStack {
-                        Text(state.isProMode ? "ACTIVE BANDWIDTH" : "Using Your Internet")
+            // 4. Pulse-grade Session Traffic, Active Interfaces & Parent-Grouped App Bandwidth
+            Divider().background(hairSoft)
+
+            VStack(alignment: .leading, spacing: 8) {
+                // 4a. Session Totals Strip: Received · Sent · Peak
+                HStack(spacing: 0) {
+                    sessionMetricColumn(
+                        label: "Received",
+                        value: ByteRateFormatter.totalBytes(state.sessionDownBytes)
+                    )
+                    sessionMetricColumn(
+                        label: "Sent",
+                        value: ByteRateFormatter.totalBytes(state.sessionUpBytes)
+                    )
+                    sessionMetricColumn(
+                        label: "Peak",
+                        value: state.sessionPeakBytesPerSec >= 1_024
+                            ? ByteRateFormatter.menuBar(state.sessionPeakBytesPerSec)
+                            : "—"
+                    )
+                }
+
+                // 4b. Active Interfaces (Wi-Fi / Ethernet / VPN with click-to-copy live IPs)
+                if !state.activeInterfaces.isEmpty {
+                    VStack(alignment: .leading, spacing: 3.5) {
+                        Text(state.isProMode ? "INTERFACES" : "Interfaces")
                             .font(state.isProMode
-                                  ? .system(size: 8.4, weight: .semibold, design: .monospaced)
-                                  : .system(size: 10.2, weight: .semibold))
-                            .foregroundColor(inkSoft)
-                        Spacer()
-                        Button("Timeline ↗") { onOpenStudio() }
-                            .buttonStyle(QuietFooterLinkStyle())
-                    }
-
-                    let maxRate = max(activeApps.first?.totalBytesPerSec ?? 1, 1)
-                    VStack(spacing: 5) {
-                        ForEach(activeApps.prefix(3)) { proc in
-                            HStack(spacing: 8) {
-                                Text(state.isProMode ? proc.name : HumanSummary.friendlyProcessName(proc.name))
-                                    .font(.system(size: 10.4, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.92))
-                                    .lineLimit(1)
-                                    .frame(width: 104, alignment: .leading)
-
-                                GeometryReader { geo in
-                                    let frac = min(1.0, max(0.06, proc.totalBytesPerSec / maxRate))
-                                    ZStack(alignment: .leading) {
-                                        Capsule().fill(Color.white.opacity(0.07))
-                                        Capsule()
-                                            .fill(proc.uploadBytesPerSec > proc.downloadBytesPerSec
-                                                  ? Color(red: 1.0, green: 0.78, blue: 0.48).opacity(0.90)
-                                                  : Color(red: 0.76, green: 0.90, blue: 1.0).opacity(0.90))
-                                            .frame(width: geo.size.width * frac)
-                                            .animation(.easeOut(duration: 0.35), value: frac)
-                                    }
+                                  ? .system(size: 8.0, weight: .semibold, design: .monospaced)
+                                  : .system(size: 9.8, weight: .semibold))
+                            .foregroundColor(inkDim)
+                        ForEach(state.activeInterfaces.prefix(3)) { iface in
+                            Button {
+                                state.copyToClipboard(iface.ipAddress, label: iface.ipAddress)
+                            } label: {
+                                HStack(spacing: 7) {
+                                    Image(systemName: interfaceSymbol(iface.kind))
+                                        .font(.system(size: 10.2, weight: .medium))
+                                        .foregroundColor(iface.kind == .vpn
+                                                         ? Color(red: 0.34, green: 0.90, blue: 0.66)
+                                                         : inkSoft)
+                                        .frame(width: 14, alignment: .center)
+                                    Text(iface.displayName)
+                                        .font(.system(size: 10.6, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.92))
+                                        .lineLimit(1)
+                                    Spacer()
+                                    Text(iface.ipAddress)
+                                        .font(.system(size: 10.0, weight: .regular, design: .monospaced))
+                                        .foregroundColor(inkSoft)
+                                        .monospacedDigit()
                                 }
-                                .frame(height: 4)
+                                .padding(.vertical, 2)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .help("Click to copy \(iface.displayName) IP (\(iface.bsdName))")
+                        }
+                    }
+                }
 
-                                Text("↓\(ByteRateFormatter.compact(proc.downloadBytesPerSec)) ↑\(ByteRateFormatter.compact(proc.uploadBytesPerSec))")
-                                    .font(.system(size: 8.6, design: .monospaced))
-                                    .foregroundColor(inkSoft)
-                                    .monospacedDigit()
-                                    .frame(width: 84, alignment: .trailing)
+                // 4c. Live Parent-Grouped Processes with Real macOS App Icons (shows active apps >= 1 KB/s)
+                let activeApps = state.topProcesses.filter { $0.totalBytesPerSec >= 1_024 }
+                if !activeApps.isEmpty {
+                    VStack(alignment: .leading, spacing: 4.5) {
+                        HStack {
+                            Text(state.isProMode ? "PROCESSES" : "Processes")
+                                .font(state.isProMode
+                                      ? .system(size: 8.0, weight: .semibold, design: .monospaced)
+                                      : .system(size: 9.8, weight: .semibold))
+                                .foregroundColor(inkDim)
+                            Spacer()
+                            Button("Connections ↗") {
+                                state.studioFocusConnections = true
+                                onOpenStudio()
+                            }
+                            .buttonStyle(QuietFooterLinkStyle())
+                        }
+
+                        let maxRate = max(activeApps.first?.totalBytesPerSec ?? 1, 1)
+                        VStack(spacing: 4.5) {
+                            ForEach(activeApps.prefix(5)) { proc in
+                                let displayName = proc.appBundlePath != nil
+                                    ? proc.name
+                                    : (state.isProMode ? proc.name : HumanSummary.friendlyProcessName(proc.name))
+                                HStack(spacing: 7.5) {
+                                    AppProcessIconView(
+                                        appBundlePath: proc.appBundlePath,
+                                        pid: proc.pid,
+                                        processName: proc.name,
+                                        size: 16
+                                    )
+
+                                    Text(displayName)
+                                        .font(.system(size: 10.8, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.94))
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                        .frame(minWidth: 96, maxWidth: 132, alignment: .leading)
+
+                                    GeometryReader { geo in
+                                        let frac = min(1.0, max(0.05, proc.totalBytesPerSec / maxRate))
+                                        ZStack(alignment: .leading) {
+                                            Capsule().fill(Color.white.opacity(0.065))
+                                            Capsule()
+                                                .fill(proc.uploadBytesPerSec > proc.downloadBytesPerSec
+                                                      ? Color(red: 1.0, green: 0.78, blue: 0.48).opacity(0.88)
+                                                      : Color(red: 0.74, green: 0.90, blue: 1.0).opacity(0.88))
+                                                .frame(width: geo.size.width * frac)
+                                                .animation(.easeOut(duration: 0.35), value: frac)
+                                        }
+                                    }
+                                    .frame(height: 3.5)
+
+                                    Text(state.isProMode
+                                         ? "↓\(ByteRateFormatter.compact(proc.downloadBytesPerSec)) ↑\(ByteRateFormatter.compact(proc.uploadBytesPerSec))"
+                                         : ByteRateFormatter.menuBar(proc.totalBytesPerSec))
+                                        .font(.system(size: state.isProMode ? 8.6 : 9.8, weight: .medium, design: .monospaced))
+                                        .foregroundColor(inkSoft)
+                                        .monospacedDigit()
+                                        .frame(width: state.isProMode ? 82 : 66, alignment: .trailing)
+                                }
+                                .help(processTooltip(proc, displayName: displayName))
                             }
                         }
                     }
@@ -1055,6 +1132,37 @@ struct PopoverView: View {
             }
             } // end connected branch
         }
+    }
+
+    private func sessionMetricColumn(label: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 1.5) {
+            Text(label)
+                .font(.system(size: 9.2, weight: .medium))
+                .foregroundColor(inkDim)
+            Text(value)
+                .font(.system(size: 12.2, weight: .semibold, design: .monospaced))
+                .foregroundColor(.white.opacity(0.96))
+                .monospacedDigit()
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func interfaceSymbol(_ kind: ActiveInterfaceKind) -> String {
+        switch kind {
+        case .wifi: return "wifi"
+        case .vpn: return "lock.shield"
+        case .ethernet: return "cable.connector"
+        case .other: return "network"
+        }
+    }
+
+    private func processTooltip(_ proc: ProcessBandwidth, displayName: String) -> String {
+        let rates = "↓ \(ByteRateFormatter.menuBar(proc.downloadBytesPerSec)) · ↑ \(ByteRateFormatter.menuBar(proc.uploadBytesPerSec))"
+        if proc.processCount > 1 {
+            return "\(displayName) (\(proc.processCount) processes) · \(rates)"
+        }
+        return "\(displayName) · \(rates)"
     }
 
     private func miniStatPill(label: String, value: String, highlight: Color = .white) -> some View {

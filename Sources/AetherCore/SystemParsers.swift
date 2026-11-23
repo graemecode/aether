@@ -422,19 +422,61 @@ public enum SystemParsers {
         previous: [String: NettopRow],
         current: [String: NettopRow],
         elapsedSeconds: Double,
-        limit: Int = 5
+        limit: Int = 6,
+        resolveApp: (Int, String) -> ResolvedApp = { AppAttribution.resolve(pid: $0, fallbackName: $1) }
     ) -> [ProcessBandwidth] {
         guard elapsedSeconds > 0.05 else { return [] }
-        var rates: [ProcessBandwidth] = []
+        struct Acc {
+            var displayName: String
+            var appBundlePath: String?
+            var topPID: Int
+            var topPIDRate: Double
+            var down: Double
+            var up: Double
+            var count: Int
+        }
+        var grouped: [String: Acc] = [:]
         for (key, cur) in current {
             guard let prev = previous[key] else { continue }
             let dIn = cur.bytesIn >= prev.bytesIn ? Double(cur.bytesIn - prev.bytesIn) / elapsedSeconds : 0
             let dOut = cur.bytesOut >= prev.bytesOut ? Double(cur.bytesOut - prev.bytesOut) / elapsedSeconds : 0
-            if dIn + dOut >= 256 { // ignore < 256 B/s noise
-                rates.append(ProcessBandwidth(name: cur.name, pid: cur.pid, downloadBytesPerSec: dIn, uploadBytesPerSec: dOut))
+            let total = dIn + dOut
+            guard total >= 256 else { continue } // ignore < 256 B/s noise
+
+            let resolved = resolveApp(cur.pid, cur.name)
+            if var acc = grouped[resolved.groupKey] {
+                acc.down += dIn
+                acc.up += dOut
+                acc.count += 1
+                if total > acc.topPIDRate {
+                    acc.topPID = cur.pid
+                    acc.topPIDRate = total
+                }
+                grouped[resolved.groupKey] = acc
+            } else {
+                grouped[resolved.groupKey] = Acc(
+                    displayName: resolved.displayName,
+                    appBundlePath: resolved.appBundlePath,
+                    topPID: cur.pid,
+                    topPIDRate: total,
+                    down: dIn,
+                    up: dOut,
+                    count: 1
+                )
             }
         }
-        rates.sort { $0.totalBytesPerSec > $1.totalBytesPerSec }
+        let rates = grouped.values
+            .map {
+                ProcessBandwidth(
+                    name: $0.displayName,
+                    pid: $0.topPID,
+                    downloadBytesPerSec: $0.down,
+                    uploadBytesPerSec: $0.up,
+                    appBundlePath: $0.appBundlePath,
+                    processCount: $0.count
+                )
+            }
+            .sorted { $0.totalBytesPerSec > $1.totalBytesPerSec }
         return Array(rates.prefix(limit))
     }
 
@@ -474,13 +516,31 @@ public enum SystemParsers {
 
     // MARK: - `lsof -nP -iTCP -sTCP:ESTABLISHED` (Live Outbound Connection X-Ray)
 
-    public static func parseEstablishedConnections(_ output: String) -> ConnectionXRay {
+    public static func parseEstablishedConnections(
+        _ output: String,
+        resolveApp: (Int, String) -> ResolvedApp = { AppAttribution.resolve(pid: $0, fallbackName: $1) }
+    ) -> ConnectionXRay {
         var totalOutbound = 0
         var remoteHosts: Set<String> = []
         var plaintextHTTP = 0
         var continuityLinks = 0
         var perAppCount: [String: Int] = [:]
         var perAppPlaintext: Set<String> = []
+
+        struct ConnKey: Hashable {
+            let groupKey: String
+            let host: String
+            let port: Int
+        }
+        struct ConnAcc {
+            let appName: String
+            let appBundlePath: String?
+            let pid: Int
+            let host: String
+            let port: Int
+            var count: Int
+        }
+        var connMap: [ConnKey: ConnAcc] = [:]
 
         for line in output.components(separatedBy: .newlines).dropFirst() {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -489,6 +549,7 @@ public enum SystemParsers {
             guard cols.count >= 9 else { continue }
 
             let rawCmd = String(cols[0]).replacingOccurrences(of: "\\x20", with: " ")
+            let pid = Int(cols[1]) ?? 0
             guard let flowToken = cols.first(where: { $0.contains("->") }) else { continue }
             let parts = flowToken.components(separatedBy: "->")
             guard parts.count == 2 else { continue }
@@ -503,17 +564,38 @@ public enum SystemParsers {
                 continue
             }
 
+            let resolved = resolveApp(pid, rawCmd)
+            let appDisplay = resolved.displayName
+
             totalOutbound += 1
             if let colonIdx = remote.lastIndex(of: ":") {
-                let host = String(remote[..<colonIdx])
+                var host = String(remote[..<colonIdx])
+                if host.hasPrefix("[") && host.hasSuffix("]") {
+                    host = String(host.dropFirst().dropLast())
+                }
                 let portStr = String(remote[remote.index(after: colonIdx)...])
+                let port = Int(portStr) ?? 0
                 remoteHosts.insert(host)
-                if portStr == "80" {
+                if port == 80 {
                     plaintextHTTP += 1
-                    perAppPlaintext.insert(rawCmd)
+                    perAppPlaintext.insert(appDisplay)
+                }
+                let key = ConnKey(groupKey: resolved.groupKey, host: host, port: port)
+                if var existing = connMap[key] {
+                    existing.count += 1
+                    connMap[key] = existing
+                } else {
+                    connMap[key] = ConnAcc(
+                        appName: appDisplay,
+                        appBundlePath: resolved.appBundlePath,
+                        pid: pid,
+                        host: host,
+                        port: port,
+                        count: 1
+                    )
                 }
             }
-            perAppCount[rawCmd, default: 0] += 1
+            perAppCount[appDisplay, default: 0] += 1
         }
 
         let top = perAppCount
@@ -523,12 +605,33 @@ public enum SystemParsers {
                 return a.connectionCount > b.connectionCount
             }
 
+        let connections = connMap.values
+            .map {
+                OutboundConnection(
+                    appName: $0.appName,
+                    appBundlePath: $0.appBundlePath,
+                    pid: $0.pid,
+                    remoteHost: $0.host,
+                    remotePort: $0.port,
+                    serviceLabel: ServicePortCatalog.label(forPort: $0.port),
+                    socketCount: $0.count,
+                    isPlaintextHTTP: $0.port == 80
+                )
+            }
+            .sorted { a, b in
+                if a.isPlaintextHTTP != b.isPlaintextHTTP { return a.isPlaintextHTTP }
+                if a.socketCount != b.socketCount { return a.socketCount > b.socketCount }
+                if a.appName != b.appName { return a.appName.localizedCaseInsensitiveCompare(b.appName) == .orderedAscending }
+                return a.remoteHost < b.remoteHost
+            }
+
         return ConnectionXRay(
             totalOutboundSockets: totalOutbound,
             uniqueRemoteHosts: remoteHosts.count,
             plaintextHTTPCount: plaintextHTTP,
             continuityPeerLinks: continuityLinks,
-            topApps: Array(top.prefix(6))
+            topApps: Array(top.prefix(6)),
+            connections: Array(connections.prefix(80))
         )
     }
 }

@@ -26,6 +26,7 @@
 		839047D8ADF5F7087E9E18A0 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29033D254BC99CAD60691047 /* main.swift */; };
 		84021B2535C3E03813099112 /* libAetherCore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BD7AA9AABB0BF1540ACA4357 /* libAetherCore.a */; };
 		8582EB8F819997CCA84CC012 /* StudioWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75051CA78464B2F157FAF090 /* StudioWindowController.swift */; };
+		8A1B9C9D055E9AFBB2599E46 /* AppAttribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB4D9AF16A3B5F26DEDB435C /* AppAttribution.swift */; };
 		8FB5351D93368DCCEF06AA35 /* InterfaceCounters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EA7517D311A49043B0ABBD7 /* InterfaceCounters.swift */; };
 		9950618B1553BEB3BABDDBCB /* Network.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BF205FC07B9374DA175A9605 /* Network.framework */; };
 		9D3C4FC78E10D130B1C43F23 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 17F0BC8AF2BD432F279E80AC /* QuartzCore.framework */; };
@@ -38,9 +39,11 @@
 		C50096089FCC6940D8CF49B7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D238A274E7681E9B677325D2 /* Assets.xcassets */; };
 		C97079AC4C2EF57F2DDD98DD /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8E70553958A31DEE9444D53C /* ServiceManagement.framework */; };
 		CBB24C62E1DFFB96366BAFAF /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 068AB3C111F1F8610EC5ADE0 /* CoreLocation.framework */; };
+		DA0EC801EE5FADB77BD60542 /* AppIconCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C7D09D0F025C48B54C1A09D /* AppIconCache.swift */; };
 		DC3CFEDEE967A3503AE058C3 /* SystemParsers.swift in Sources */ = {isa = PBXBuildFile; fileRef = E420AE83154850AB446B61D3 /* SystemParsers.swift */; };
 		DDAFFB7F44C7C64B02F3DB86 /* TrustAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71303504B610897776441617 /* TrustAnalyzer.swift */; };
 		E140C181950587595E2FA0FA /* InstrumentStageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF5C6B18D84509E6344B7484 /* InstrumentStageView.swift */; };
+		E4E4728A698682705362FEB2 /* DocSnapshotRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9874F2676B8BC32FD93FF0E /* DocSnapshotRenderer.swift */; };
 		E9716603DB29FBFDD5DCA362 /* HumanSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = F850E0DF6E6D9F2EF0BFD106 /* HumanSummary.swift */; };
 		F03ED08943C866F263E59200 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F926D41B82A57D22F30E169 /* AppState.swift */; };
 		F0B8AC1CC1BD7785980B33A2 /* MenuBarPositioner.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEA5A2EFE1B43D5CCFA86827 /* MenuBarPositioner.swift */; };
@@ -67,6 +70,7 @@
 		29033D254BC99CAD60691047 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		323CCF1BF77ADE6B3C648494 /* NetworkProbes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkProbes.swift; sourceTree = "<group>"; };
 		3EDFD35C113702F2BB9909FB /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		4C7D09D0F025C48B54C1A09D /* AppIconCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconCache.swift; sourceTree = "<group>"; };
 		4D2DEDB5B62FC65A93580316 /* AetherGlyphs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AetherGlyphs.swift; sourceTree = "<group>"; };
 		5AF4DC48F41212DFF1037367 /* CoreWLAN.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreWLAN.framework; path = System/Library/Frameworks/CoreWLAN.framework; sourceTree = SDKROOT; };
 		61E2F8D2AD6E289251EE8A2C /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
@@ -80,6 +84,7 @@
 		98B5124992A982D1E20CDC71 /* WiFiController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiFiController.swift; sourceTree = "<group>"; };
 		AF079DE4E9E495EEF6637D03 /* Aether.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Aether.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B35B77AF601097EEACCBC28D /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
+		BB4D9AF16A3B5F26DEDB435C /* AppAttribution.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAttribution.swift; sourceTree = "<group>"; };
 		BD7AA9AABB0BF1540ACA4357 /* libAetherCore.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libAetherCore.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		BF205FC07B9374DA175A9605 /* Network.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Network.framework; path = System/Library/Frameworks/Network.framework; sourceTree = SDKROOT; };
 		CC0149588500073FFF69774A /* ConnectionMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionMonitor.swift; sourceTree = "<group>"; };
@@ -90,6 +95,7 @@
 		DAFE796DA2B49C179E867EBF /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		DF1008EDBB026C78AAE91FD7 /* QRCodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeView.swift; sourceTree = "<group>"; };
 		E420AE83154850AB446B61D3 /* SystemParsers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemParsers.swift; sourceTree = "<group>"; };
+		E9874F2676B8BC32FD93FF0E /* DocSnapshotRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocSnapshotRenderer.swift; sourceTree = "<group>"; };
 		F70FB36659CF313210744BA5 /* OUIVendorLookup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OUIVendorLookup.swift; sourceTree = "<group>"; };
 		F850E0DF6E6D9F2EF0BFD106 /* HumanSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HumanSummary.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -173,6 +179,7 @@
 			isa = PBXGroup;
 			children = (
 				4D2DEDB5B62FC65A93580316 /* AetherGlyphs.swift */,
+				4C7D09D0F025C48B54C1A09D /* AppIconCache.swift */,
 				CF5C6B18D84509E6344B7484 /* InstrumentStageView.swift */,
 				CCD379A274498D06073CF352 /* MenuBarIconView.swift */,
 				61E2F8D2AD6E289251EE8A2C /* PopoverView.swift */,
@@ -187,6 +194,7 @@
 			children = (
 				DAFE796DA2B49C179E867EBF /* AppDelegate.swift */,
 				1F926D41B82A57D22F30E169 /* AppState.swift */,
+				E9874F2676B8BC32FD93FF0E /* DocSnapshotRenderer.swift */,
 				29033D254BC99CAD60691047 /* main.swift */,
 			);
 			path = App;
@@ -195,6 +203,7 @@
 		E739C9A2437CD2E07C6EB048 /* AetherCore */ = {
 			isa = PBXGroup;
 			children = (
+				BB4D9AF16A3B5F26DEDB435C /* AppAttribution.swift */,
 				0F0F28BE37EC6DF46B88D2C9 /* ChannelAnalyzer.swift */,
 				CC0149588500073FFF69774A /* ConnectionMonitor.swift */,
 				F850E0DF6E6D9F2EF0BFD106 /* HumanSummary.swift */,
@@ -336,6 +345,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8A1B9C9D055E9AFBB2599E46 /* AppAttribution.swift in Sources */,
 				08E99A81730C30EFF7EB9D21 /* ChannelAnalyzer.swift in Sources */,
 				AA2E679283502618E5F81B31 /* ConnectionMonitor.swift in Sources */,
 				E9716603DB29FBFDD5DCA362 /* HumanSummary.swift in Sources */,
@@ -359,7 +369,9 @@
 			files = (
 				3A0AEDF4E06461FC642FAA11 /* AetherGlyphs.swift in Sources */,
 				B4DD91E0D8F0624228472B44 /* AppDelegate.swift in Sources */,
+				DA0EC801EE5FADB77BD60542 /* AppIconCache.swift in Sources */,
 				F03ED08943C866F263E59200 /* AppState.swift in Sources */,
+				E4E4728A698682705362FEB2 /* DocSnapshotRenderer.swift in Sources */,
 				E140C181950587595E2FA0FA /* InstrumentStageView.swift in Sources */,
 				0BABA0D05499F34BA92ABB86 /* MenuBarIconView.swift in Sources */,
 				B624599B6BAF2973071F49EE /* PopoverView.swift in Sources */,

@@ -50,7 +50,10 @@ final class AppState: ObservableObject {
     @Published var throughputHistory: [ThroughputSample] = []
     @Published var sessionDownBytes: UInt64 = 0
     @Published var sessionUpBytes: UInt64 = 0
+    @Published var sessionPeakBytesPerSec: Double = 0
+    @Published var activeInterfaces: [ActiveInterface] = []
     @Published var topProcesses: [ProcessBandwidth] = []
+    @Published var studioFocusConnections = false
 
     @Published var qualityResult: NetworkQualityResult?
     @Published var isRunningQualityTest = false
@@ -253,8 +256,17 @@ final class AppState: ObservableObject {
 
     private func tickFast(forceWiFiRead: Bool = false) {
         fastTickCount += 1
-        let preferredIface = route.defaultInterface ?? latestWiFiCache.interfaceName
-        let counterSample = counters.readSample(preferredInterface: preferredIface)
+        let preferredIface = InterfaceCounters.physicalThroughputInterface(
+            defaultInterface: route.defaultInterface,
+            wifiInterface: latestWiFiCache.interfaceName,
+            wifiConnected: latestWiFiCache.isConnected
+        )
+        let activeVPNName = vpns.first(where: { $0.isConnected })?.name
+        let counterSample = counters.readSample(
+            preferredInterface: preferredIface,
+            wifiInterface: latestWiFiCache.interfaceName,
+            connectedVPNName: activeVPNName
+        )
 
         // Throttle CoreWLAN XPC calls to airportd: every 5s when idle, every 2s when open (instant on force/events)
         let wifiInterval = isAnySurfaceOpen ? 2 : 5
@@ -290,6 +302,10 @@ final class AppState: ObservableObject {
             self.currentThroughput = counterSample.sample
             self.sessionDownBytes = counterSample.sessionDownBytes
             self.sessionUpBytes = counterSample.sessionUpBytes
+            self.sessionPeakBytesPerSec = counterSample.sessionPeakBytesPerSec
+            if self.activeInterfaces != counterSample.activeInterfaces {
+                self.activeInterfaces = counterSample.activeInterfaces
+            }
             self.throughputHistory = internalThroughputRing
             if let ip = counterSample.localIP, self.route.localIP != ip {
                 self.route.localIP = ip
@@ -327,6 +343,11 @@ final class AppState: ObservableObject {
                 Task {
                     await refreshEnvironment(includeHops: true)
                     await sampleProcessBandwidth()
+                    // Quick second baseline delta so live per-app speeds appear in ~1s on open
+                    try? await Task.sleep(nanoseconds: 900_000_000)
+                    if self.isAnySurfaceOpen {
+                        await sampleProcessBandwidth()
+                    }
                     if disconnectedOnOpen || rawScanBSSIDs.isEmpty {
                         await scanNearbyNetworks()
                     }
@@ -632,7 +653,7 @@ final class AppState: ObservableObject {
         let rows = await NetworkProbes.sampleNettopSnapshot()
         if let prev = lastNettopRows, let prevDate = lastNettopDate {
             let dt = now.timeIntervalSince(prevDate)
-            let top = SystemParsers.diffNettop(previous: prev, current: rows, elapsedSeconds: dt, limit: 4)
+            let top = SystemParsers.diffNettop(previous: prev, current: rows, elapsedSeconds: dt, limit: 6)
             self.topProcesses = top
         }
         lastNettopRows = rows

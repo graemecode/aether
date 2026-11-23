@@ -145,6 +145,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             state.$statusBanner.removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$qualityResult.removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$topProcesses.map(\.count).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
+            state.$activeInterfaces.map(\.count).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$nearbyNetworks.map(\.count).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$vpns.map(\.count).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),
             state.$trustAudit.map(\.checks.count).removeDuplicates().map { _ in () }.eraseToAnyPublisher(),

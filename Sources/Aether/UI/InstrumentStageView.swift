@@ -167,18 +167,48 @@ struct InstrumentStageView: View {
 
                 HStack(alignment: .bottom) {
                     if !(isHovering || peekSwitcher) {
-                        Text(stageFooterReadout)
-                            .font(.system(size: 8.5, weight: .medium, design: .monospaced))
-                            .foregroundColor(inkSoft)
-                            .tracking(0.35)
-                            .lineLimit(1)
-                            .contentTransition(.numericText())
-                        Spacer()
                         if state.stageMode == .flux {
-                            Text("SESSION \(ByteRateFormatter.totalBytes(state.sessionDownBytes)) ↓ · \(ByteRateFormatter.totalBytes(state.sessionUpBytes)) ↑")
-                                .font(.system(size: 7.6, weight: .regular, design: .monospaced))
-                                .foregroundColor(inkDim)
+                            HStack(spacing: 11) {
+                                HStack(spacing: 4.5) {
+                                    Circle()
+                                        .fill(Color(red: 0.72, green: 0.90, blue: 1.0))
+                                        .frame(width: 5, height: 5)
+                                    Text("↓ \(ByteRateFormatter.menuBar(state.currentThroughput.downloadBytesPerSec))")
+                                        .font(.system(size: 9.4, weight: .semibold, design: .monospaced))
+                                        .foregroundColor(.white.opacity(0.95))
+                                        .monospacedDigit()
+                                        .contentTransition(.numericText())
+                                }
+                                HStack(spacing: 4.5) {
+                                    Circle()
+                                        .fill(Color(red: 1.0, green: 0.76, blue: 0.44))
+                                        .frame(width: 5, height: 5)
+                                    Text("↑ \(ByteRateFormatter.menuBar(state.currentThroughput.uploadBytesPerSec))")
+                                        .font(.system(size: 9.4, weight: .semibold, design: .monospaced))
+                                        .foregroundColor(.white.opacity(0.92))
+                                        .monospacedDigit()
+                                        .contentTransition(.numericText())
+                                }
+                            }
+                            .lineLimit(1)
+
+                            Spacer(minLength: 6)
+
+                            if state.sessionPeakBytesPerSec >= 1_024 {
+                                Text("PEAK \(ByteRateFormatter.menuBar(state.sessionPeakBytesPerSec))")
+                                    .font(.system(size: 7.8, weight: .medium, design: .monospaced))
+                                    .foregroundColor(inkDim)
+                                    .monospacedDigit()
+                                    .lineLimit(1)
+                            }
+                        } else {
+                            Text(stageFooterReadout)
+                                .font(.system(size: 8.5, weight: .medium, design: .monospaced))
+                                .foregroundColor(inkSoft)
+                                .tracking(0.35)
                                 .lineLimit(1)
+                                .contentTransition(.numericText())
+                            Spacer()
                         }
                     } else {
                         Spacer()
