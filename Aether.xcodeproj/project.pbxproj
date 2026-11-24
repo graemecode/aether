@@ -70,7 +70,7 @@
 		273E4BD9D562B6ABA4202FD8 /* RFPhysics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RFPhysics.swift; sourceTree = "<group>"; };
 		29033D254BC99CAD60691047 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		323CCF1BF77ADE6B3C648494 /* NetworkProbes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkProbes.swift; sourceTree = "<group>"; };
-		3EDFD35C113702F2BB9909FB /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		3EDFD35C113702F2BB9909FB /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		4C7D09D0F025C48B54C1A09D /* AppIconCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIconCache.swift; sourceTree = "<group>"; };
 		4D2DEDB5B62FC65A93580316 /* AetherGlyphs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AetherGlyphs.swift; sourceTree = "<group>"; };
 		5AF4DC48F41212DFF1037367 /* CoreWLAN.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreWLAN.framework; path = System/Library/Frameworks/CoreWLAN.framework; sourceTree = SDKROOT; };
@@ -455,7 +455,7 @@
 		63CFFF758E1266B2ADB492F2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				COMBINE_HIDPI_IMAGES = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -474,12 +474,12 @@
 		8F65DEFA5F0FDB923D7B6E4B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "AppStore/Aether-AppStore.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 6KM3577ETV;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AppStore/Info-AppStore.plist";
@@ -488,7 +488,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -504,7 +504,7 @@
 		C9B4819D3C3C177AA2210038 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				COMBINE_HIDPI_IMAGES = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -524,12 +524,12 @@
 		D117200E3E6E0A8910494FAE /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = arm64;
+				ARCHS = "$(ARCHS_STANDARD)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = "AppStore/Aether-AppStore.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = 6KM3577ETV;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AppStore/Info-AppStore.plist";
@@ -538,7 +538,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",

@@ -72,8 +72,21 @@ enum DocSnapshotRenderer {
         let studioShot = renderStudio(state: state)
         saveStudioPlate(studio: studioShot, to: outDir.appendingPathComponent("vis-studio.jpg"))
 
-        // Plate 5: Disconnected-First Wi-Fi Picker
+        // Plate 5: Instant Verdict + 4-Hop Route (Airplane / Satellite Bottleneck)
+        applyOnDeviceBriefFixture(state)
+        state.aiDiagnosis = nil
+        state.stageMode = .route
+        state.activeTab = .speed
+        let verdictShot = renderPopover(state: state)
+        savePlate(
+            card: verdictShot,
+            menuBar: renderMenuBarIcon(state: state),
+            to: outDir.appendingPathComponent("vis-verdict.jpg")
+        )
+
+        // Plate 6: Unified Offline Wi-Fi Picker
         applyDisconnectedFixture(state)
+        state.aiDiagnosis = nil
         state.isScanningNetworks = false
         let discShot = renderPopover(state: state)
         savePlate(
@@ -82,7 +95,7 @@ enum DocSnapshotRenderer {
             to: outDir.appendingPathComponent("vis-disconnected.jpg")
         )
 
-        print("Rendered 5 Aether plates to \(outDir.path)")
+        print("Rendered 6 Aether plates to \(outDir.path)")
         return true
     }
 

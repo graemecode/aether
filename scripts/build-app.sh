@@ -6,8 +6,8 @@ APP_NAME="Aether"
 DISPLAY_NAME="Aether"
 BUNDLE_ID="com.strangechances.Aether"
 TEAM_ID="6KM3577ETV"
-VERSION="1.0.0"
-BUILD_NUM="1"
+VERSION="1.1.0"
+BUILD_NUM="2"
 BUILD_DIR="$ROOT_DIR/build"
 APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
 CONTENTS="$APP_BUNDLE/Contents"
@@ -16,14 +16,17 @@ RES_DIR="$CONTENTS/Resources"
 
 DO_INSTALL=false
 DO_DMG=false
+DO_NOTARIZE=false
 SKIP_TESTS=false
 
 for arg in "$@"; do
   case "$arg" in
     --install) DO_INSTALL=true ;;
     --dmg) DO_DMG=true ;;
+    --notarize) DO_NOTARIZE=true; DO_DMG=true ;;
+    --release) DO_NOTARIZE=true; DO_DMG=true ;;
     --skip-tests) SKIP_TESTS=true ;;
-    *) echo "Unknown flag: $arg (supported: --install, --dmg, --skip-tests)" >&2; exit 1 ;;
+    *) echo "Unknown flag: $arg (supported: --install, --dmg, --notarize, --release, --skip-tests)" >&2; exit 1 ;;
   esac
 done
 
@@ -118,6 +121,8 @@ DIRECT_ENTITLEMENTS="$ROOT_DIR/AppStore/Aether-Direct.entitlements"
 echo "==> Code signing $APP_BUNDLE (identity: $SIGN_ID)..."
 if [[ "$SIGN_ID" == "-" ]]; then
   codesign --force --deep --entitlements "$DIRECT_ENTITLEMENTS" --sign - "$APP_BUNDLE"
+elif [[ "$DO_NOTARIZE" == "true" ]]; then
+  codesign --force --deep --options runtime --entitlements "$DIRECT_ENTITLEMENTS" --timestamp --sign "$SIGN_ID" "$APP_BUNDLE"
 else
   codesign --force --deep --options runtime --entitlements "$DIRECT_ENTITLEMENTS" --timestamp=none --sign "$SIGN_ID" "$APP_BUNDLE"
 fi
@@ -135,7 +140,24 @@ if [[ "$DO_DMG" == "true" ]]; then
   ln -s /Applications "$STAGING/Applications"
   hdiutil create -volname "$DISPLAY_NAME" -srcfolder "$STAGING" -ov -format UDZO "$DMG_PATH" >/dev/null
   rm -rf "$STAGING"
-  if [[ "$SIGN_ID" != "-" ]]; then
+
+  if [[ "$DO_NOTARIZE" == "true" ]]; then
+    NOTARY_PROFILE="${NOTARY_PROFILE:-acoustic-notary}"
+    echo "==> Signing DMG with secure timestamp..."
+    codesign --force --timestamp --sign "$SIGN_ID" "$DMG_PATH"
+
+    echo "==> Submitting to Apple Notarization (profile: $NOTARY_PROFILE)..."
+    xcrun notarytool submit "$DMG_PATH" --keychain-profile "$NOTARY_PROFILE" --wait
+
+    echo "==> Stapling notarization ticket to DMG and app bundle..."
+    xcrun stapler staple "$DMG_PATH"
+    xcrun stapler validate "$DMG_PATH"
+    xcrun stapler staple "$APP_BUNDLE"
+    xcrun stapler validate "$APP_BUNDLE"
+
+    echo "==> Verifying Gatekeeper acceptance..."
+    spctl --assess --type open --context context:primary-signature -vv "$DMG_PATH"
+  elif [[ "$SIGN_ID" != "-" ]]; then
     codesign --force --timestamp=none --sign "$SIGN_ID" "$DMG_PATH"
   fi
   DMG_SHA="$(shasum -a 256 "$DMG_PATH" | awk '{print $1}')"
