@@ -703,6 +703,11 @@ enum DocSnapshotRenderer {
         s.sessionDownBytes = 411_800_000
         s.sessionUpBytes = 148_200_000
         s.sessionPeakBytesPerSec = 1_320_000
+        s.topProcesses = [
+            ProcessBandwidth(name: "Safari", pid: 412, downloadBytesPerSec: 215_000, uploadBytesPerSec: 18_000, appBundlePath: "/Applications/Safari.app", processCount: 4),
+            ProcessBandwidth(name: "Mail", pid: 518, downloadBytesPerSec: 124_000, uploadBytesPerSec: 42_000, appBundlePath: "/System/Applications/Mail.app", processCount: 2),
+            ProcessBandwidth(name: "iCloud Drive", pid: 612, downloadBytesPerSec: 61_000, uploadBytesPerSec: 121_000, appBundlePath: nil, processCount: 1)
+        ]
         s.aiDiagnosis = NetworkDiagnosis(
             summary: "Your cabin Wi-Fi signal is strong (38 dB SNR on 5 GHz), so the 642 ms lag is upstream over the satellite link — not your Mac.",
             nextStep: "Twingate VPN is already encrypting your traffic; skip live video calls until you land and use async messaging instead.",
