@@ -129,9 +129,10 @@ public enum HumanSummary {
 
         // 2. Router reachable, upstream internet unreachable
         if hopHealth.routerMs != nil && hopHealth.internetMs == nil {
+            let localNoun = isWired ? "Local Ethernet" : "Local Wi-Fi"
             return ConnectionVerdict(
                 headline: "Router is up, internet isn't responding",
-                detail: "Local Wi-Fi is fine, but traffic stops past the router — check for a login page or ISP outage.",
+                detail: "\(localNoun) is fine, but traffic stops past the router — check for a login page or ISP outage.",
                 severity: .alert,
                 action: .checkSignIn,
                 prefersRouteStage: true
@@ -158,14 +159,15 @@ public enum HumanSummary {
             )
         }
 
-        // 4. Strong local Wi-Fi + fast router, but high upstream internet latency (e.g. airplane/satellite/remote ISP)
+        // 4. Strong local link + fast router, but high upstream internet latency (e.g. airplane/satellite/remote ISP)
         if let web = hopHealth.internetMs, web >= 150 {
             let localOK = isWired || (wifi.snr >= 20 && (hopHealth.routerMs ?? 0) < 35)
             let msInt = Int(round(web))
             if localOK {
                 let severe = web >= 350
+                let localHead = isWired ? "Fast Ethernet" : "Strong Wi-Fi"
                 return ConnectionVerdict(
-                    headline: "Strong Wi-Fi, slow upstream link (~\(msInt) ms)",
+                    headline: "\(localHead), slow upstream link (~\(msInt) ms)",
                     detail: "Downloads should work, but video calls will feel laggy — delay is beyond your router.\(vpnSuffix)",
                     severity: severe ? .alert : .caution,
                     action: .none,
@@ -173,9 +175,12 @@ public enum HumanSummary {
                 )
             }
             // Both local hop and internet are elevated — honestly admit we cannot isolate a single hop
+            let ambiguousDetail = isWired
+                ? "Couldn't isolate router load vs. upstream congestion yet — run a quick test to check bufferbloat."
+                : "Couldn't isolate Wi-Fi interference vs. router load yet — run a quick test to check bufferbloat."
             return ConnectionVerdict(
                 headline: "Slow across the path (~\(msInt) ms)",
-                detail: "Couldn't isolate Wi-Fi interference vs. router load yet — run a quick test to check bufferbloat.",
+                detail: ambiguousDetail,
                 severity: .caution,
                 action: .runTest,
                 prefersRouteStage: true
@@ -208,9 +213,12 @@ public enum HumanSummary {
         // 7. Ambiguous elevated path delay or router jitter (honest admission when cause isn't isolated)
         if let rtr = hopHealth.routerMs, rtr >= 35 {
             let rtrInt = Int(round(rtr))
+            let detail = isWired
+                ? "Local router hop is slow — run a test to check stability under load."
+                : "Couldn't isolate whether it's Wi-Fi interference or a busy router — run a test to check stability."
             return ConnectionVerdict(
                 headline: "Elevated router delay (\(rtrInt) ms local hop)",
-                detail: "Couldn't isolate whether it's Wi-Fi interference or a busy router — run a test to check stability.",
+                detail: detail,
                 severity: .caution,
                 action: .runTest,
                 prefersRouteStage: true

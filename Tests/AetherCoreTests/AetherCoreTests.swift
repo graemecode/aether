@@ -1085,5 +1085,35 @@ final class AetherCoreTests: XCTestCase {
         XCTAssertEqual(ambiguous.action, .runTest)
         XCTAssertTrue(ambiguous.prefersRouteStage)
         XCTAssertTrue(ambiguous.detail.lowercased().contains("couldn't isolate"))
+
+        // 6. Wired Ethernet scenarios -> describe Ethernet, never Wi-Fi
+        let offlineWiFi = WiFiSnapshot(powerOn: false, isConnected: false)
+        let wiredSlow = HumanSummary.connectionVerdict(
+            wifi: offlineWiFi,
+            isWired: true,
+            hopHealth: HopHealth(routerMs: 1.2, dnsMs: 18.0, internetMs: 380.0),
+            stability: StabilityMetrics(avgInternetMs: 380.0, jitterMs: 9.0, packetLossPercent: 0, callGrade: .choppy, verdict: "High RTT"),
+            channelAnalysis: ChannelAnalysis(),
+            captivePortal: .clear,
+            quality: nil,
+            activeVPN: nil
+        )
+        XCTAssertEqual(wiredSlow.severity, .alert)
+        XCTAssertTrue(wiredSlow.headline.contains("Ethernet"))
+        XCTAssertFalse(wiredSlow.headline.contains("Wi-Fi"))
+
+        let wiredOutage = HumanSummary.connectionVerdict(
+            wifi: offlineWiFi,
+            isWired: true,
+            hopHealth: HopHealth(routerMs: 1.5, dnsMs: nil, internetMs: nil),
+            stability: StabilityMetrics(),
+            channelAnalysis: ChannelAnalysis(),
+            captivePortal: .clear,
+            quality: nil,
+            activeVPN: nil
+        )
+        XCTAssertEqual(wiredOutage.severity, .alert)
+        XCTAssertTrue(wiredOutage.detail.contains("Ethernet"))
+        XCTAssertFalse(wiredOutage.detail.contains("Wi-Fi"))
     }
 }

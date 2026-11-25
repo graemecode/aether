@@ -417,6 +417,7 @@ public enum NativeNetworkTelemetry {
         return result
     }
 
+    #if !APP_STORE
     public static func setVPNConnected(_ service: VPNService, connect: Bool) -> Bool {
         guard let conn = SCNetworkConnectionCreateWithServiceID(nil, service.uuid as CFString, nil, nil) else {
             return false
@@ -425,6 +426,7 @@ public enum NativeNetworkTelemetry {
             ? SCNetworkConnectionStart(conn, nil, true)
             : SCNetworkConnectionStop(conn, true)
     }
+    #endif
 
     // MARK: - Local mDNS Broadcast Name
 

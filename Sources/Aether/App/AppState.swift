@@ -937,10 +937,20 @@ final class AppState: ObservableObject {
 
     func toggleVPN(_ service: VPNService) {
         performHaptic()
+        if isSandboxed {
+            showBanner("Manage \(service.name) in macOS VPN Settings")
+            openVPNSettings()
+            return
+        }
         let targetConnect = !service.isConnected
         showBanner(targetConnect ? "Connecting \(service.name)…" : "Disconnecting \(service.name)…")
         Task {
-            _ = await NetworkProbes.setVPNConnected(service, connect: targetConnect)
+            let ok = await NetworkProbes.setVPNConnected(service, connect: targetConnect)
+            if !ok {
+                self.showBanner("Manage \(service.name) in macOS VPN Settings")
+                self.openVPNSettings()
+                return
+            }
             try? await Task.sleep(for: .milliseconds(900))
             await refreshEnvironment(includeHops: true)
         }
@@ -1131,6 +1141,12 @@ final class AppState: ObservableObject {
 
     func openWiFiSettings() {
         if let url = URL(string: "x-apple.systempreferences:com.apple.wifi-settings-extension") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    func openVPNSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.NetworkExtension-Settings.extension") {
             NSWorkspace.shared.open(url)
         }
     }

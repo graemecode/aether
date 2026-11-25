@@ -611,12 +611,12 @@ public enum NetworkProbes {
     // MARK: - Actions (VPN toggle, DNS flush, On-Demand Public IP)
 
     public static func setVPNConnected(_ service: VPNService, connect: Bool) async -> Bool {
-        if NativeNetworkTelemetry.setVPNConnected(service, connect: connect) {
-            return true
-        }
         #if APP_STORE
         return false
         #else
+        if NativeNetworkTelemetry.setVPNConnected(service, connect: connect) {
+            return true
+        }
         let verb = connect ? "start" : "stop"
         let (_, code) = await runCommand("/usr/sbin/scutil", arguments: ["--nc", verb, service.uuid], timeoutSeconds: 4.0)
         return code == 0

@@ -382,7 +382,7 @@ struct PopoverView: View {
         } content: {
             HStack(spacing: 0) {
                 hopCell(
-                    label: state.isProMode ? "LINK" : "WI-FI",
+                    label: state.isProMode ? "LINK" : (state.isWired && !state.wifi.isConnected ? "ETHERNET" : "WI-FI"),
                     value: state.isProMode
                         ? (state.wifi.isConnected ? "\(state.wifi.snr)dB" : (state.isWired ? "WIRE" : "—"))
                         : HumanSummary.humanSignalLabel(wifi: state.wifi, isWired: state.isWired),
@@ -1451,12 +1451,16 @@ struct PopoverView: View {
 
             if let firstVPN = state.vpns.first, !firstVPN.isConnected && state.currentTrustZone == .untrusted {
                 Button {
-                    state.toggleVPN(firstVPN)
+                    if state.isSandboxed {
+                        state.openVPNSettings()
+                    } else {
+                        state.toggleVPN(firstVPN)
+                    }
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "lock.shield.fill")
                             .font(.system(size: 10.5))
-                        Text("Turn On \(firstVPN.name)")
+                        Text(state.isSandboxed ? "Open VPN Settings (\(firstVPN.name))" : "Turn On \(firstVPN.name)")
                             .font(.system(size: 10.5, weight: .semibold))
                     }
                     .foregroundColor(.black)
@@ -1644,10 +1648,21 @@ struct PopoverView: View {
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(.white.opacity(0.92))
                             Spacer()
-                            Button(vpn.isConnected ? "Disconnect" : "Connect") {
-                                state.toggleVPN(vpn)
+                            if state.isSandboxed {
+                                Text(vpn.isConnected ? "Connected" : "Off")
+                                    .font(.system(size: 9.6, weight: .medium))
+                                    .foregroundColor(vpn.isConnected ? Color(red: 0.32, green: 0.92, blue: 0.66) : inkDim)
+                                Button("Settings ↗") {
+                                    state.openVPNSettings()
+                                }
+                                .buttonStyle(AetherHairlineButtonStyle(prominent: false))
+                                .help("Manage this VPN in macOS System Settings")
+                            } else {
+                                Button(vpn.isConnected ? "Disconnect" : "Connect") {
+                                    state.toggleVPN(vpn)
+                                }
+                                .buttonStyle(AetherHairlineButtonStyle(prominent: vpn.isConnected))
                             }
-                            .buttonStyle(AetherHairlineButtonStyle(prominent: vpn.isConnected))
                         }
                         .padding(.horizontal, 9)
                         .frame(height: 31)

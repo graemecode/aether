@@ -27,16 +27,16 @@ Everything below is character-counted, App Review verified (`APP_STORE` sandbox 
 
 ---
 
-## 2. Version Listing Copy (App Store Connect → macOS App 1.0.0)
+## 2. Version Listing Copy (App Store Connect → macOS App 1.1.0)
 
 ### Promotional Text (`161 / 170 chars` — editable anytime without a new build)
 ```text
 See why your Wi-Fi feels slow in one click. Live signal physics, true latency, RF channel overlap, privacy audit, and on-device Apple Intelligence — 0% idle CPU.
 ```
 
-### Keywords (`97 / 100 chars` — zero duplication of Name/Subtitle words)
+### Keywords (`99 / 100 chars` — zero duplication of Name/Subtitle words)
 ```text
-network,monitor,analyzer,menu bar,bandwidth,latency,ping,jitter,spectrum,vpn,router,lan,scanner,rf
+network,monitor,analyzer,menu bar,bandwidth,latency,ping,jitter,spectrum,dns,router,lan,scanner,rf
 ```
 
 ### Description (`~2,150 / 4,000 chars` — crisp, Apple-editorial tone, zero fluff)
@@ -63,7 +63,7 @@ ON-DEVICE APPLE INTELLIGENCE (MACOS 26+)
 KNOW WHO CAN SEE YOU ON ANY WI-FI
 • Plain-English privacy breakdown for Strangers Nearby, Wi-Fi Owner & ISP, and Others on This Wi-Fi.
 • Automatic gateway fingerprint pinning warns you of evil-twin routers or encryption downgrades.
-• Inspect every device sharing your local Wi-Fi with OUI vendor lookup and mDNS hostnames, plus one-click VPN tunnel control.
+• Inspect every device sharing your local Wi-Fi with OUI vendor lookup and mDNS hostnames, plus active VPN shield detection.
 
 AETHER STUDIO (⌘E)
 • Expand into a full-screen RF & latency workbench: real-time RF power and SNR physics, interactive multi-hop latency and jitter timeline, live channel spectrum across all three bands, LAN device roster, connection event log, and copyable diagnostics report.
@@ -73,9 +73,11 @@ PRIVATE BY DESIGN
 • Location permission is used solely by macOS to display Wi-Fi network names and channel scans—location data never leaves your Mac.
 ```
 
-### What's New in Version 1.0.0
+### What's New in Version 1.1.0
 ```text
-Initial Mac App Store release of Aether — live Wi-Fi signal physics, multi-hop latency, RF channel spectrum, local network privacy audit, Aether Studio workbench, and on-device Apple Intelligence diagnostics.
+• Verdict-first popover: immediate plain-English diagnosis at the top of the panel that separates strong local Wi-Fi from slow upstream/satellite links, captive portals, crowded channels, and ambiguous lag—automatically leading with the 4-hop Route circuit whenever a hop is degraded.
+• Refined sculpted sapphire-obsidian app icon, frosted segmented navigation, and Universal (Apple Silicon + Intel) Mac App Store binary.
+• Read-only macOS VPN shield detection with one-click shortcut to System Settings → VPN.
 ```
 
 ---
@@ -135,4 +137,4 @@ Most macOS network utilities are either bare-bones Wi-Fi menus or cluttered deve
 3. Verify **Signing & Capabilities** → Team `6KM3577ETV`, Bundle ID `com.strangechances.Aether`, Automatically manage signing checked.
 4. Click **Product → Archive**.
 5. In Organizer, click **Validate App** (confirm 0 errors), then **Distribute App → App Store Connect → Upload**.
-6. In App Store Connect, select build `1.0.0 (1)`, paste the copy & drag all 6 PNGs from `AppStore/screenshots/`, set App Privacy to **Data Not Collected**, paste `AppStore/REVIEW-NOTES.md`, and click **Add for Review**.
+6. In App Store Connect, select build `1.1.0 (2)`, paste the copy & drag all 6 PNGs from `AppStore/screenshots/`, set App Privacy to **Data Not Collected**, paste `AppStore/REVIEW-NOTES.md`, and click **Add for Review**.
